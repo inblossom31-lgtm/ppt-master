@@ -28,6 +28,8 @@ As a top-tier AI presentation strategist, receive source documents, perform cont
 >
 > **One opt-in exception**: present the spec-refinement line alongside the split-mode note (SKILL.md Step 4). It is OFF by default — the above discipline holds unchanged. Only when the user *explicitly* asks to refine the spec do you hand off to the [refine-spec](../workflows/refine-spec.md) workflow, which produces the full spec first and stops for user review/revision of any part before generation. Never enter it unprompted.
 
+> **Default presentation surface — Confirm UI.** Deliver the bundled package through the interactive page: write your recommendations to `<project>/confirm_ui/recommendations.json`, then launch per [SKILL.md Step 4](../SKILL.md). You still author everything — enumerable fields name a recommended `id`; generative fields (color `palette`, CJK + Latin typography, generated-image style) carry a few **candidates**, same thinking as h.5. **Always also print the recommendations + URL in chat** as the always-valid fallback. On confirm, read `<project>/confirm_ui/result.json` (`generation_mode: "split"` / `refine_spec: true` are explicit user choices). Skip the page if the user wants chat-only. Full launch flow, field rules, and JSON schema live in [SKILL.md Step 4](../SKILL.md) + [`scripts/docs/confirm_ui.md`](../scripts/docs/confirm_ui.md) — don't restate them here. The page is a confirmation surface only.
+
 ### a. Canvas Format Confirmation
 
 Recommend format based on scenario (see [`canvas-formats.md`](canvas-formats.md)).
@@ -285,6 +287,8 @@ The script renders PNGs into `images/`, trying `codecogs`, `quicklatex`, `mathpa
 | **C** | AI-generated | Custom illustrations, backgrounds needed |
 | **D** | Web-sourced | Real-world reference imagery, editorial support, stock-style needs (no API key required for default providers) |
 | **E** | Placeholders | Images to be added later |
+
+> **Confirmed value wins.** The `image_usage` in `result.json` (or the chat reply) **overrides the recommendation here** — map it to §VIII `Acquire Via` (`ai`→`ai`, `web`→`web`, `provided`→**`user`**, `placeholder`→`placeholder`, `none`→option A, no image rows). When it is not `ai` (and the plan has no AI part), skip h.5 entirely and write no `ai` rows. See SKILL.md Step 4 for the full mapping.
 
 **When recommending C** — surface its three implementation modes so the user knows "no API key" is a supported state:
 
