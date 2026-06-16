@@ -71,6 +71,8 @@ The deck's **visual aesthetic** — shape language, decoration density, whitespa
 - User named a style → map to the closest preset; if none fits, `custom` with a `visual_style_behavior` paragraph.
 - No user description → recommend by the index's auto-selection table (content vibe / industry → style). Present as a recommendation; the user may override.
 
+**Forbidden — a non-catalog name as `visual_style`**: the value MUST be an `id` from the visual-styles catalog (or genuine `custom` prose). A name that is **not** in that catalog is not a visual style — most often it is an image-rendering name from the `_index` "Paired rendering" column (`flat`, `vector-illustration`, `digital-dashboard`, `3d-isometric`, `corporate-photo`, …), which names the §h *illustration* family, not the deck's layout aesthetic. Do not borrow it. (Names that are intentionally **both** a style and its paired rendering — `glassmorphism`, `blueprint`, `editorial`, `dark-tech` — are valid styles because they *are* in the catalog.) Generic baseline words — `flat` / flat-design / 扁平 / modern / clean / simple / minimal — are **not** custom-worthy either: the whole system is flat by default (shadows discouraged), so map them to the closest preset (flat + grid → `swiss-minimal`; flat + rounded → `soft-rounded`; flat + dense → `brutalist`). Reserve `custom` for an aesthetic no preset covers.
+
 **Carries no color.** A visual style governs how the deck's HEX (locked at `e`) is *used* — never which colors, same discipline as [`image-renderings`](./image-renderings/_index.md). When the deck has AI images, prefer the style's paired rendering so layout and illustration share one aesthetic.
 
 Write the locked value to `spec_lock.md` `- visual_style:` and the rationale to `design_spec.md`. Executor loads only that one visual-style file.
@@ -143,6 +145,8 @@ See [`../templates/icons/README.md`](../templates/icons/README.md) for the curre
 
 ### g. Typography Plan Confirmation (Font + Size)
 
+🚧 **GATE — read the locked style's type character first**: `read_file` the visual-style file locked at §d Layer 2 (`visual-styles/<visual_style>.md`) and pull its **§2 Typography character** (you only read the catalog index there; the per-style character lives in the file). Both combinations below MUST realize it, and the **title carries the personality** — the CJK body may stay a neutral pre-installed sans, but the title leads with the character the style asks for (e.g. `ink-wash` → calligraphic `KaiTi` / `FangSong`; `brutalist` / `memphis` / `vintage-poster` / `zine` → display `SimHei` / `Impact`; `editorial` / `data-journalism` / `photo-editorial` → serif `Georgia` / `Cambria` / `SimSun`; `dark-tech` / `blueprint` → clean sans + `Consolas` mono; `swiss-minimal` / `soft-rounded` → grotesque / friendly sans). For `visual_style: custom`, realize its `visual_style_behavior` character instead. Letting the title default to a neutral sans when the style asks for character is the failure mode to avoid.
+
 #### Font Combinations
 
 > Same-deck fonts must form **contrast** (different family, weight, or proportion) or **concord** (one family throughout). "Similar but not identical" pairings *across roles* are forbidden — see blacklist below. *Within one stack*, pairing a Windows font with a macOS counterpart (e.g. `Microsoft YaHei` + `PingFang SC`) is encouraged as a browser-preview nicety; converter writes only the first into PPTX.
@@ -164,7 +168,7 @@ See [`../templates/icons/README.md`](../templates/icons/README.md) for the curre
 - `"Times New Roman"` ↔ `Times`
 - `Georgia` ↔ `Cambria`
 
-**Mandatory**: propose **two** combinations to the user — one concord (safe), one contrast (with tension). Do not default to "title = body, same font" without explicit user request. Pick each family by subject fit and the locked `visual_style` character — there is **no default family**; type should follow the deck's content and aesthetic, not fall back to one safe face.
+**Mandatory**: propose **two** combinations to the user — one concord (safe), one contrast (with tension). Do not default to "title = body, same font" without explicit user request. Pick each family by subject fit and the locked `visual_style`'s **§2 character** (read at the GATE above) — there is **no default family**; type should follow the deck's content and aesthetic, not fall back to one safe face.
 
 > **Template precedence**: when a template was loaded at Step 3 via an explicit path and declares `title` / `body` font stacks in `<project_path>/templates/design_spec.md §III Typography` / §IV (or whichever heading the fused spec uses), lock those directly and skip the two-combination presentation. Same precedence as e. — user override > template values.
 
@@ -179,7 +183,7 @@ See [`../templates/icons/README.md`](../templates/icons/README.md) for the curre
 | Mono | Consolas, Courier New |
 | Display | Impact, Arial Black |
 
-**Seed combinations** (all PPT-safe; first column is the contrast axis, not a scenario) — starting points, not the allowed set. Any client-preinstalled family is fair game; non-pre-installed expressive faces go title-only (see note below).
+**Seed combinations** (all PPT-safe; first column is the contrast axis, not a scenario) — starting points, not the allowed set. Any client-preinstalled family is fair game; non-pre-installed expressive faces go title-only (see note below). Let the locked style's §2 character pick the axis and the title lead; the `Microsoft YaHei` body cells are the **neutral default, not a requirement** — a styled deck still varies the title even when the CJK body stays a neutral sans.
 
 | Contrast axis | Title stack | Body stack | Code stack |
 |---|---|---|---|
@@ -194,7 +198,7 @@ See [`../templates/icons/README.md`](../templates/icons/README.md) for the curre
 | Tech / developer | `Arial, "Microsoft YaHei", sans-serif` | same | `Consolas, "Courier New", monospace` |
 | Concord (single family — pick the family by subject + `visual_style`) | `<family by subject>, …, sans-serif / serif` | same | — |
 
-> **Stack length discipline (soft rule).** ≤4 fonts per stack. Lead with Windows-preinstalled fonts (Microsoft YaHei / SimSun / Arial / Georgia / Consolas); keep at most **one** macOS-exclusive family (typically `"PingFang SC"`). Converter only picks the first Latin and first CJK font ([`drawingml_utils.py parse_font_family`](../scripts/svg_to_pptx/drawingml_utils.py)); macOS→Windows fallback is auto-mapped via `FONT_FALLBACK_WIN`.
+> **Stack length discipline (soft rule).** ≤4 fonts per stack. The **first** CJK and first Latin font MUST be pre-installed — the converter writes only those, and a non-installed lead substitutes to Calibri ([`drawingml_utils.py parse_font_family`](../scripts/svg_to_pptx/drawingml_utils.py)). Choose that lead from the safe set **by the locked style's character**: `Microsoft YaHei` / `Arial` are the *neutral* members — perfect as the tail fallback and as the lead only when the style is plain-sans, but **not the automatic lead for every deck**. For a styled title, lead with `SimHei` / `KaiTi` / `FangSong` / `SimSun` / `Georgia` / `Cambria` / `Impact` / `Consolas` as the character asks. Keep at most **one** macOS-exclusive family (typically `"PingFang SC"`); macOS→Windows fallback is auto-mapped via `FONT_FALLBACK_WIN`.
 
 > **Non-pre-installed directions** (require install or PPTX embed; note the constraint in Design Spec):
 > - **Retro / pixel** — Press Start 2P / VT323 / Silkscreen
@@ -336,7 +340,7 @@ After the candidates, append one line:
 | Span a personality spectrum | Typically: one conservative-default (industry norm), one shifted-tone (same fit, 1-2 ticks different), one bold-contrast (more expressive, may challenge default). No near-duplicates. |
 | `Mood` line MUST include a real-world analogy | Company / publication / event the user can picture. Adjective stacks alone are forbidden. |
 | Adapt labels to chat language | Schema is English by default. Chinese chat → render as 「方案 A / 视觉 / 色彩 / 情绪」. Structure stays the same; only the labels translate. |
-| Skip presentation when user has specified | User-named rendering or palette (chat / brand / template) bypasses the candidate flow — lock directly per the truth-precedence rule. |
+| Skip presentation when user has specified | User-named rendering or palette (chat / brand / template), **or a Confirm UI pick in `result.json.image_strategy`** (same shape as color / typography honoring their confirmed candidate), bypasses the candidate flow — lock *that chosen candidate's* `rendering` + `palette` directly per the truth-precedence rule; do not re-pick. |
 | `custom` is a tail-case, not a default | When no preset fits, a candidate may set `rendering: custom` and / or `palette: custom` (rules: [`image-renderings/_index.md`](../image-renderings/_index.md) §1.5, [`image-palettes/_index.md`](../image-palettes/_index.md) §2). At most one candidate per dimension may carry `custom`; one candidate may carry both dimensions as `custom`. `Visual` / `Color` lines describe the behavior in prose, never by naming a competing preset. |
 
 **Forbidden — padding with conflicts**: if e.'s HEX cannot find ≥3 compatible palettes, present the smaller set (2 candidates) and state "your color is unusual — only N palettes can carry it without conflict." A `custom` candidate is allowed only when its prose genuinely describes a tail-case the presets cannot — not as a slot-filler. Never fill remaining slots with known-conflicting options.
