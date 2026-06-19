@@ -56,6 +56,7 @@ The deck's **narrative + persuasion skeleton** — how the argument is organized
 
 **Source**:
 - User supplied their own outline / structure → it is authoritative. Transcribe it into `§IX` as given (page order + titles preserved); still lock a mode, but for register / voice and page-internal treatment, **not** to reshape — never reorder the user's pages or rewrite their given titles. Note in `design_spec.md` that the structure is user-authored. `briefing` imposes the least if no particular "讲法" is intended.
+- Beautify / re-layout workflow ([`beautify-pptx.md`](../workflows/beautify-pptx.md)) → the extracted source content is authoritative and **verbatim**, one step stricter than the user-outline case above. Each source slide becomes exactly one `§IX` page in source order; transcribe every content block word-for-word — never reshape / re-primary / condense / merge / split / reword. Lock `mode: briefing`; color (e) and typography (g) are the source identity the user confirmed in the beautify plan (theme or observed usage), locked as truth (skip both recommendation flows). Charts / tables / images are regenerated from their extracted data in the inherited style (route chart/table data to §VII, pictures to §VIII) — data values stay frozen, the rendering is the deck's own; never carried over verbatim. Layout, hierarchy, rhythm, and visual rendering are what gets redesigned.
 - A bespoke direction the five don't give — a nameable cadence (dialectic 正反合, myth-vs-reality, countdown, Socratic), a multi-act fusion of modes, or the user's own feel (confrontational here, detached there). Either the user asks, **or you recommend it** when a fusion / bespoke direction genuinely serves the deck better than a single preset (a recommendation the user confirms, like every lock). The *kind* doesn't matter → `mode: custom` + a `mode_behavior:` paragraph that **crystallizes the intent** (act sequence or posture shifts, title voice, page rhythm, register) concretely enough for the Executor to follow per page; it reads only `spec_lock.md`, never the chat. One deck locks **one** value — a fusion is one `custom` describing the acts, never several modes. Avoid only the *dodge*: don't default to `custom` when a preset genuinely fits, and prefer a dominant mode + page-level variation when one mode leads.
 - No user structure or cadence → recommend by the index's auto-selection table (content / audience signal → mode) plus the deck's stated purpose; the mode does the structural lifting. Present as a recommendation; the user may override.
 
@@ -139,7 +140,10 @@ See [`../templates/icons/README.md`](../templates/icons/README.md) for the curre
 > 3. Enumerate the concepts the deck actually needs (home, chart, users, …) based on the confirmed outline.
 > 4. Search for each concept's filename in the chosen library: `ls skills/ppt-master/templates/icons/<chosen-library>/ | grep <keyword>`
 > 5. Use the verified filename (without `.svg`) as the icon name; always include the library prefix (e.g., `chunk-filled/home`).
-> 6. List the final icon inventory and chosen library in `design_spec.md` §VI; record the same in `spec_lock.md icons` (including `stroke_width` for stroke-style libraries). Executor may only use icons from this list.
+> 6. **Copy each chosen icon into the project as you confirm it** — `python3 skills/ppt-master/scripts/icon_sync.py <project_path> <lib/name> [<lib/name> …]`. This populates `<project>/icons/<lib>/` (the set the Executor embeds from) and, more importantly, **validates existence on the spot**.
+> 7. List the final icon inventory and chosen library in `design_spec.md` §VI; record the same in `spec_lock.md icons` (including `stroke_width` for stroke-style libraries). Executor may only use icons from this list.
+>
+> 🚧 **GATE — missing icon = re-pick now**: if `icon_sync.py` reports any name as missing (non-zero exit), that icon is not in the library — re-pick a real filename via `ls … | grep`, fix `§VI` / `spec_lock.md`, and re-run until it exits clean. Never carry a missing icon forward to generation. Over-copying candidates is harmless — finalize embeds only the icons actually referenced by `<use data-icon>`.
 >
 > **Do NOT preload any index file** — when the inventory step arrives, use `ls | grep` to search on demand with zero token cost.
 
@@ -211,7 +215,17 @@ See [`../templates/icons/README.md`](../templates/icons/README.md) for the curre
 
 > **Ramp, not a fixed menu.** All sizes derive from the `body` baseline as a ratio. `spec_lock.md typography` declares `body` plus the slots this deck uses (`title` / `subtitle` / `annotation` by default; add `cover_title` / `hero_number` / `chart_annotation` as needed). Executor may pick any intermediate px within a role's ratio band.
 
-Baseline choice follows **content density**, not style. Common: `18px` (dense) / `24px` (relaxed). Other integers are fine — `16px` for chart-heavy, `20-22px` for medium, `28-32px` for poster/cover.
+Baseline scales with **canvas height first, then content density** — the `18`/`24px` figures below anchor to a 720-tall 16:9 canvas (≈2.5–3.3% of height); hold that proportion on taller canvases, never carrying a 16:9 number onto a larger one. Within a canvas, density picks the point in its band (chart-heavy low · medium mid · relaxed / poster / cover high), relative to that canvas's anchor, not a fixed 16:9 px.
+
+| Canvas | Height | Body baseline (dense–relaxed) |
+|---|---|---|
+| PPT 16:9 / 4:3 | 720 / 768 | 18–24 |
+| Xiaohongshu | 1242×1660 | 40–55 |
+| WeChat / IG 1:1 | 1080×1080 | 27–36 |
+| Story / Portrait | 1080×1920 | 48–64 |
+| A4 | 1240×1754 | 44–58 |
+
+> **Canvas drives the baseline — re-derive on change, never carry.** The body baseline is a function of the *confirmed* canvas (item a), not the recommended one. If the user overrides the recommended canvas in confirmation, recompute the baseline (and therefore the whole ramp) for the new canvas before writing `spec_lock.md`: the `body_size` in `recommendations.json` was sized for the recommended canvas and is stale the moment the canvas changes.
 
 | Common recommendation | Points per Page | Body Baseline | Suitable Scenarios |
 |----------------|----------------|---------------|-------------------|

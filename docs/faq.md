@@ -87,14 +87,14 @@ If your workflow specifically requires Excel-driven data editing, manually creat
 
 ## Q: Can I change page transitions and element animations?
 
-Yes. Page transitions (`fade` 0.4s by default) and per-element entrance animations (`auto` effect with `after-previous` cascade by default — effect mapped from each group's SVG id, with image-like ids cycling a visual pool for variation) are both controlled by `svg_to_pptx.py` flags — `-t/--transition` for page-level and `-a/--animation` for element-level. Common one-liners:
+Yes. Page transitions are on by default (`fade` 0.4s); per-element entrance animation is **off by default** — a page appears as a whole instead of having elements auto-cascade in one by one (that unsolicited cascade is the strongest "AI deck" tell). Both are controlled by `svg_to_pptx.py` flags — `-t/--transition` for page-level and `-a/--animation` for element-level. Turn element animation on explicitly when you want it:
 
 ```bash
 python3 skills/ppt-master/scripts/svg_to_pptx.py <project> -t push       # different transition
 python3 skills/ppt-master/scripts/svg_to_pptx.py <project> -t none       # disable transitions
-python3 skills/ppt-master/scripts/svg_to_pptx.py <project> -a none       # disable per-element animation
-python3 skills/ppt-master/scripts/svg_to_pptx.py <project> --animation fade        # use a single effect instead of mixed
-python3 skills/ppt-master/scripts/svg_to_pptx.py <project> --animation-trigger on-click   # presenter-paced reveals
+python3 skills/ppt-master/scripts/svg_to_pptx.py <project> -a auto       # enable per-element entrance (effect mapped from group id)
+python3 skills/ppt-master/scripts/svg_to_pptx.py <project> --animation fade        # enable with a single effect
+python3 skills/ppt-master/scripts/svg_to_pptx.py <project> -a auto --animation-trigger on-click   # presenter-paced reveals
 ```
 
 `on-click` is for live presentations. Narrated/video export via `--recorded-narration` rejects it because PPT Master writes page timings, not object-level click timings; use `after-previous` or `with-previous` for narrated decks.
@@ -153,6 +153,21 @@ Split mode is a **compromise** — it pays ~6K tokens (re-reading SKILL.md) to d
 Yes. You can **interrupt the workflow at any time** — after the first few pages are generated, review them and give feedback. The AI can regenerate specific pages based on your comments. You don't need to wait until the end to make corrections.
 
 For post-generation fixes, simply tell the AI: "Page 3 has a layout issue — the title overlaps the chart" and it will fix that specific SVG.
+
+## Q: I have an existing PPT and want to build on it — which route should I use?
+
+Think of "using an existing PPT" as two questions: **keep its content or not**, and **keep its design (layout + visuals) or not**. The four combinations map to four routes:
+
+- **Keep content + redo layout** → **beautify (re-layout)**: text stays verbatim, page count and order are preserved 1:1, only the layout is redone while inheriting the original palette/fonts. Say "make this deck look better" / "re-layout this, keep the wording". See the [beautify workflow](../skills/ppt-master/workflows/beautify-pptx.md).
+- **Replace content + keep design** → **template-fill**: keep the original design, pour new content back into the native slides (next question).
+- **Keep only content, redo design and pagination** → **main pipeline (free re-architecture)**: treat the PPT as an ordinary source document — extract it to Markdown with `ppt_to_md`, then run the standard generation flow, where the Strategist re-architects the outline freely (merge / split / reorder pages). Say "build a better deck from this one's content".
+- **Keep content + keep design** → no generation needed; just use the original file.
+
+The one-line test between beautify and the main pipeline: **is the source's page split information to preserve, or just the previous author's structure to improve?** Preserve → beautify; improve → main pipeline.
+
+There is also one orthogonal route: if you don't want to produce a deck right now but want to **harvest the design into a reusable template** for future use, use **create-template** (see "How do I create a custom template?" below).
+
+---
 
 ## Q: I already have a finished `.pptx` — can I reuse its design and just fill in new content?
 
