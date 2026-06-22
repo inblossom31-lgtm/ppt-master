@@ -54,10 +54,10 @@
 - body_family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif
 - emphasis_family: Georgia, SimSun, serif
 - code_family: Consolas, "Courier New", monospace
-- body: 22
-- title: 32
-- subtitle: 24
-- annotation: 14
+- body: 26.67
+- title: 48
+- subtitle: 36
+- annotation: 20
 
 > **All five family lines are listed explicitly** so Strategist considers every role — `code_family` and `emphasis_family` are easily forgotten. In a real `spec_lock.md`:
 > - Keep any `*_family` whose role genuinely differs from `font_family`.
@@ -68,9 +68,9 @@
 >
 > **Source**: copy verbatim from the *Per-role font stacks* list in `design_spec.md §IV Font Plan`. Stack **order** encodes browser-rendering intent (Latin-led vs. CJK-led) that the breakdown table cannot — strings here must match character-for-character. See `design_spec.md §IV` for the explainer.
 >
-> Sizes (`body` / `title` / etc.) are in px, matching SVG units. `body` is the **required baseline anchor** — all other sizes derive as ratios of it (ramp table: `design_spec_reference.md §IV`).
+> Sizes (`body` / `title` / etc.) are **unitless px numbers** — the execution unit and the same values recorded in `design_spec.md §IV`. PPT canvases may have been confirmed in pt, but that conversion is resolved before spec writing (`px = pt × 4⁄3`; e.g. body 20pt → `26.67`, title 36pt → `48`, subtitle 27pt → `36`, annotation 15pt → `20`). For non-PPT canvases there is no pt layer — the px is authored directly. Do not write `pt` / `px` / `em` or any unit, and **do not copy a confirmed pt number unconverted** (`20` would render as 15pt — the one error the unit guard cannot catch). `body` is the **required baseline anchor** — all other sizes derive as ratios of it (ramp table: `design_spec_reference.md §IV`).
 >
-> **Size slots are anchors, not a closed menu.** Common slots (`title` / `subtitle` / `annotation`) cover frequent cases. Add role-specific slots (e.g. `cover_title: 72`, `hero_number: 48`, `chart_annotation: 13`) when needed — common for cover-heavy decks, consulting-style hero numbers, dense pages. Executor may use intermediate sizes as long as the ratio to `body` sits in the role's ramp band.
+> **Size slots are anchors, not a closed menu.** Common slots (`title` / `subtitle` / `annotation`) cover frequent cases. Add role-specific slots (e.g. `cover_title: 88`, `hero_number: 56`, `subheading: 32`, `lead: 32`, `chart_annotation: 18`) when needed — common for cover-heavy decks, consulting-style hero numbers, dense pages. `subheading` and `lead` sit between `subtitle` and `body`; their bands overlap `subtitle`, so pick by role, not size, and declare only the ones the deck uses. **Structural roles (title / body / subtitle / annotation / footnote) render at their locked size on every page — one role, one size, deck-wide.** Intermediate in-band sizes are for special / feature elements only (hero number, display title, one-off emphasis); declare a recurring one as its own slot so it stays consistent too.
 >
 > **⚠️ PPT-safe stack discipline (HARD rule).** PPTX stores one `typeface` per run with no runtime fallback. Every stack MUST end with a cross-platform pre-installed font: `"Microsoft YaHei", sans-serif` / `SimSun, serif` / `Arial, sans-serif` / `"Times New Roman", serif` / `Consolas, "Courier New", monospace`. Non-preinstalled fonts (Inter / Google Fonts / brand typefaces) may lead the stack only when the Design Spec notes the font-install or embedding requirement.
 >
