@@ -350,7 +350,15 @@ The script renders PNGs into `images/`, trying `codecogs`, `quicklatex`, `mathpa
 >
 > Read `<project_path>/analysis/image_analysis.csv` (size / ratio / category of every in-hand picture). The A–E choice is still your judgment, but it MUST be made with the current inventory in full view — never in ignorance of what is already on hand. `image_analysis.csv` is a regenerated view of the live folder, not a durable fact: re-run this whenever `images/` changes.
 
-> **Confirmed value wins.** The `image_usage` in `result.json` (or the chat reply) **overrides the recommendation here** — map it to §VIII `Acquire Via` (`ai`→`ai`, `web`→`web`, `provided`→**`user`**, `placeholder`→`placeholder`, `none`→option A, no image rows). When it is not `ai` (and the plan has no AI part), skip h.5 entirely and write no `ai` rows. See SKILL.md Step 4 for the full mapping.
+> **Recommendation shape.** In `recommendations.json`, write `recommend.image_usage` as source ids, not prose. Use a single id for a single source (`"ai"`) and an array for mixed sources (`["ai", "provided"]`, `["web", "placeholder"]`). Put the strategy explanation in top-level `image_notes.value`: page roles, which supplied assets are authoritative, where AI may fill gaps, what kind of imagery to prefer/avoid, and whether placeholders are acceptable. `none` is exclusive and must not be combined with other ids.
+
+> **Confirmed value wins.** The `image_usage` in `result.json` (or the chat reply) **overrides the recommendation here**. It may be a legacy single string or a Confirm UI multi-select array. Map every selected value to §VIII `Acquire Via` (`ai`→`ai`, `web`→`web`, `provided`→**`user`**, `placeholder`→`placeholder`, `none`→option A, no image rows). When it does not include `ai` (and no legacy prose plan includes AI), skip h.5 entirely and write no `ai` rows. If `image_notes` is present, honor it as the user's image intent while assigning per-page rows. See SKILL.md Step 4 for the full mapping.
+
+> **Small spot illustrations are optional visual enhancement, not a confirmation field.** The user confirms image source via `image_usage`; within that boundary, Strategist may proactively add a coherent family of small decorative spot illustrations when the deck's `visual_style`, content texture, and page density would benefit. Do not create a separate system, page-role map, or user-facing picker. Use them on suitable pages; do not force a quota, and do not phrase the rule as "few pages." Suitable means the spot improves rhythm, warmth, continuity, or section identity without carrying facts or competing with charts, photos, tables, screenshots, or key text. `image_usage: none` wins and produces no decorative illustration rows.
+
+**AI generation path — one sheet, then slice.** When spot illustrations are AI-generated and the deck needs ≥3 same-family elements, write one `ai` Illustration Sheet row plus one `slice` row per used element. Step 5 generates the sheet, then slices transparent PNG elements for placement. This is just AI-generated imagery batched for consistency and efficiency; do not generate one image per spot.
+
+**Plan illustration shape from placement, not from a square default.** Before writing the sheet row, group the planned spot illustrations by intended placement shape: compact object, tall side accent, wide banner/vignette, or another explicit shape family. Do not ask for generic "small illustrations" with no shape intent. If one deck needs incompatible shapes, write separate sheet intents instead of forcing every element into one implied square set; Image_Generator owns the exact sheet ratio and grid.
 
 **When recommending C** — surface its three implementation modes so the user knows "no API key" is a supported state:
 
@@ -363,6 +371,8 @@ The script renders PNGs into `images/`, trying `codecogs`, `quicklatex`, `mathpa
 Selection is automatic in Step 5 (A → B → Manual). Detailed contract: [`image-generator.md`](./image-generator.md) §3.2.
 
 Selections may be mixed at the row level — e.g. a deck can use C for hero illustrations while sourcing D for supporting team photos.
+
+> **Spot illustrations → one sheet, not N rows.** When the deck wants ≥3 small same-family spot illustrations as decorative accessories across pages (the illustration counterpart to icons), do not write one `ai` row per element. Write **one `ai` sheet row** (the sheet prompt intent — generated but never placed, kept out of `spec_lock.md images`) **plus one `slice` element row per used element** (each placed, each listed in `spec_lock.md images` so the Executor may reference it). The sheet row's `Reference` must name the intended cell shape family and placement purpose, such as "portrait side-accent spot set" or "landscape footer-vignette spot set"; the slice rows reference the parent sheet + cell. Step 5 / Image_Generator chooses the exact sheet ratio, grid, and slice command. Plan these sparingly, only where decoration genuinely lifts the page. Full resource contract + slice command: [`image-generator.md`](./image-generator.md) §4.3.
 
 #### h.5 AI Image Strategy — lock rendering + palette (only when C is selected)
 
@@ -548,7 +558,7 @@ After the user picks a candidate, scan the outline and surface any pages where t
 | **Layout pattern** | **MANDATORY** — one or more `#<id> <name>` joined by ` + ` from `image-layout-patterns.md`. Combine a Primary id with optional Modifier ids when the page needs it (e.g. `#48 side-by-side comparison + #21 rounded rectangle crop + #29 two-stop scrim`). A single Primary is fine when the page calls for it. See the GATE earlier in this section. Empty cells or invented ids are invalid. |
 | Purpose | e.g., `Cover background` |
 | Type | Free-form category tag — `Background`, `Photography`, `Illustration`, `Diagram`, `Portrait`, `Latex Formula`, etc. Required for formula rows (`Latex Formula`). |
-| **Acquire Via** | `ai` / `web` / `user` / `formula` / `placeholder` — only `ai` and `web` drive Step 5 dispatch |
+| **Acquire Via** | `ai` / `web` / `user` / `formula` / `placeholder` / `slice` — only `ai` and `web` drive Step 5 dispatch; `slice` is derived after its `ai` sheet generates (§4.3) |
 | Status | Initial status must be `Pending`, `Existing`, `Rendered`, or `Placeholder`; see [`svg-image-embedding.md`](svg-image-embedding.md) for the full status enum |
 | **Reference** | Free-form **intent description** (NOT a search query); feeds Image_Generator (ai) or Image_Searcher (web) |
 | `text_policy` (optional, `ai` rows only) | `none` (no text in image) or `embedded` (text is part of the artwork). Leave blank when Image_Generator should decide per row. Long body / data / lists stay in SVG. |

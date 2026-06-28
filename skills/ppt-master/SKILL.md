@@ -27,11 +27,13 @@ description: >
 > 7. **SEQUENTIAL PAGE GENERATION ONLY** — In Executor Step 6, after the global design context is confirmed, SVG pages MUST be generated sequentially page by page in one continuous pass. Grouped page batches (for example, 5 pages at a time) are FORBIDDEN
 > 8. **SPEC_LOCK RE-READ PER PAGE** — Before generating each SVG page, Executor MUST `read_file <project_path>/spec_lock.md`. All colors / fonts / icons / images MUST come from this file — no values from memory or invented on the fly. Executor MUST also look up the current page's `page_rhythm` (`anchor` / `dense` / `breathing`), `page_layouts` (which template SVG to inherit, if any), and `page_charts` (which chart template to adapt, if any). Empty / absent entries are intentional Strategist signals — see executor-base.md §2.1. This rule exists to resist context-compression drift on long decks and to break the uniform "every page is a card grid" default
 > 9. **SVG MUST BE HAND-WRITTEN, NOT SCRIPT-GENERATED** — Every SVG page is written by the main agent directly, one page at a time (see rules 6 and 7). Writing or running a Python / Node / shell script that produces the SVG files in batch — looping over pages, templating from data, or emitting them via a generator — is FORBIDDEN, including under "save tokens", "quick draft", or "user is in a hurry" pretexts. The script-generation path was tried on a feature branch and abandoned: cross-page visual consistency depends on per-page authoring with full upstream context, which a generator script cannot reproduce
+> 10. **FOLLOW DETERMINISTIC ROUTING RULES** — Do not add blocking routing questions when this skill defines a route. If the user request violates a route precondition, state the required prerequisite and stop that route instead of asking the user to choose around the rule. Ordinary finite options, stylistic preferences, and recoverable details are surfaced with a recommended value plus alternatives at the next existing confirmation gate.
 
 > [!IMPORTANT]
 > ## 🌐 Language & Communication Rule
 >
 > - **Response language**: match the user's input and source materials. Explicit user override (e.g., "请用英文回答") takes precedence.
+> - **User-facing option labels**: when presenting confirmations, brief proposals, choices, or finite option sets, use the user's language for labels and explanations. English enum IDs / file fields may appear in parentheses for precision, but never rely on English-only labels such as `deck`, `layout`, `mirror`, or `fidelity` without a localized explanation.
 > - **Template format**: `design_spec.md` MUST follow its original English template structure (section headings, field names) regardless of conversation language. Content values may be in the user's language.
 
 > [!IMPORTANT]
@@ -56,6 +58,7 @@ description: >
 | `${SKILL_DIR}/scripts/analyze_images.py` | Image analysis |
 | `${SKILL_DIR}/scripts/latex_render.py` | LaTeX formula rendering (manifest-driven PNG assets) |
 | `${SKILL_DIR}/scripts/image_gen.py` | AI image generation (multi-provider) |
+| `${SKILL_DIR}/scripts/slice_images.py` | Slice one AI illustration sheet into individual spot-illustration elements |
 | `${SKILL_DIR}/scripts/svg_quality_checker.py` | SVG quality check |
 | `${SKILL_DIR}/scripts/total_md_split.py` | Speaker notes splitting |
 | `${SKILL_DIR}/scripts/finalize_svg.py` | SVG post-processing (unified entry) |
@@ -96,13 +99,34 @@ For complete tool documentation, see `${SKILL_DIR}/scripts/README.md`.
 
 ### PPTX Route Boundary
 
+> [!CAUTION]
+> **Raw PPTX template requests route to `template-fill` by default.** A `.pptx` may enter the main pipeline as source material. But when the user provides a raw `.pptx` template plus new material / a new topic and asks to generate a `.pptx`, use [`workflows/template-fill-pptx.md`](workflows/template-fill-pptx.md). The SVG generation route can consume only an explicit template directory path; if the user wants SVG/template-based generation from that PPTX, they must run [`workflows/create-template.md`](workflows/create-template.md) first and return with the generated template directory path.
+
 When the user provides an existing `.pptx`, route by the role of the source deck:
+
+**Template-fill vs template-based generation — mutually exclusive routes.** Do not treat these as two implementations of the same request. They answer different user intents:
+
+- `template-fill` means **native PPTX fill**: clone selected source slides and patch their existing text / tables / charts.
+- `create-template` first, then main pipeline means **template-based generation**: turn the source deck into a reusable template package, then generate a new deck through the SVG pipeline from that template directory.
+- A raw PPTX template plus a request to output a PPTX defaults to `template-fill`; it does not enter the SVG route unless the user explicitly asks to create / use a reusable template package.
+
+| Axis | `template-fill` | `create-template` first, then main pipeline |
+|---|---|---|
+| Source deck role | Native slide library to clone and patch | Design reference to convert into a reusable template package |
+| Output mechanics | Direct OOXML editing; no SVG pipeline | SVG generation pipeline after a template directory exists |
+| User expectation | "Use this PPT template to generate a PPTX", "fill / replace text / keep these PowerPoint slide shells" | "Create / use this as a reusable template style for SVG-generated decks" |
+| Design freedom | Low to moderate: selected source slides are reused as native shells | Moderate to high: generated deck may select, repeat, skip, reorder, and adapt template pages |
+| Reusability | One-off project output | Reusable `templates/<kind>/<id>/` asset |
+| Direct signal phrases | "fill back", "replace the copy", "keep these slides", "edit this PPTX directly" | "create a template", "make this reusable", "generate from this template directory", "use this SVG template package" |
+
+Apply the route deterministically: raw `.pptx` template + "generate PPTX" → `template-fill`. SVG/template-based generation → requires a pre-created template directory path. If the user asks for SVG/template-based generation from a raw PPTX, tell them to run `create-template` first and return with the generated template directory path; do not ask a route-choice question.
 
 | User intent | Route | Contract |
 |---|---|---|
 | Preserve the deck's page split, page order, and per-slide wording; improve layout / hierarchy / whitespace | `beautify` | Source page count and order are 1:1; text and data values are frozen; visual identity is inherited after confirmation |
 | Treat the deck as source material; rethink the story, merge / split / drop / reorder pages, or change page count | Main pipeline | `ppt_to_md` + PPTX intake provide content facts and candidates; Strategist may re-architect freely |
-| Reuse the deck's native design with new material | `template-fill` | Clone selected source slides and replace text / table / chart data directly in OOXML; no SVG generation |
+| Use a raw PPTX template to generate a new PPTX with new material | `template-fill` | Clone selected source slides and replace text / table / chart data directly in OOXML; no SVG generation, no reusable template package |
+| Use the SVG generation route with this deck's design language | `create-template` first, then main pipeline | A raw PPTX is not a Step 3 template. The user must create a reusable template package first; once they provide the resulting template directory path, Step 3 can consume it like any other explicit template path |
 | Harvest the deck as a reusable future template | `create-template` | Build a template package, not a one-off generated deck |
 | Keep the finished deck visually stable and append native optimizations such as notes / narration audio / automatic playback | `native-enhance-pptx` | Archive the source PPTX into the project (`projects/` sources move; external sources copy) and patch enhancement metadata/media directly in OOXML; no SVG generation |
 
@@ -160,7 +184,7 @@ When the user provides non-Markdown content, convert immediately:
 python3 ${SKILL_DIR}/scripts/project_manager.py init <project_name> --format <format>
 ```
 
-Format options: `ppt169` (default), `ppt43`, `xhs`, `story`, etc. For the full format list, see `references/canvas-formats.md`.
+Format options must be named with concrete dimensions. Default: `ppt169` = `1280x720`, `viewBox="0 0 1280 720"`. Other examples: `ppt43` = `1024x768`, `story` = `1080x1920`, `banner` = `1920x1080`. For the full format list, see `references/canvas-formats.md`.
 
 Import source content (choose based on the situation):
 
@@ -190,6 +214,10 @@ Multi-deck: several PPTX files may be imported into one main-pipeline project �
 🚧 **GATE**: Step 2 complete; project directory structure is ready.
 
 **Default — free design.** Proceed directly to Step 4. Do NOT query any `*_index.json` unless triggered. Do NOT ask the user. Do NOT proactively suggest, hint at, or fuzzy-match any template based on content, slug-like words, or vague style descriptions.
+
+**Hard boundary — raw PPTX template references are not Step 3 templates.** PPTX-as-source remains valid in Step 1 / Step 2, and raw PPTX template + generated PPTX routes to `template-fill`. But if the user wants the SVG/template-based generation route from that PPTX, stop before Step 3. The user must first run [`workflows/create-template.md`](workflows/create-template.md), then return with the generated template directory path. Step 3 only consumes an explicit template directory that already contains `design_spec.md` with `kind: brand` / `kind: layout` / `kind: deck`.
+
+Do **not** reinterpret this boundary as 1:1 redesign or free SVG generation. Use `template-fill` for raw PPTX template + generated PPTX requests; use `beautify` only when the source deck's page count, order, and wording are preserved.
 
 **Template flow triggers ONLY on explicit directory paths** supplied by the user in their initial message. The trigger rule is mechanical, not interpretive:
 
@@ -335,7 +363,7 @@ Read references/strategist.md
 | Tier | Confirms | Driven by |
 |---|---|---|
 | **1 — anchors** | canvas · audience + core message + `content_divergence` + `delivery_purpose` *(PPT only — omitted on non-PPT canvases)* (all §c key info) · `mode` + `visual_style` | the source + user intent |
-| **2 — realization** (re-derived from Tier 1) | page count · color · typography (font + size) · icons · formula policy · image usage + strategy · generation mode · refine-spec toggle | the confirmed Tier 1 |
+| **2 — realization** (re-derived from Tier 1) | page count · color · typography (font + size) · icons · formula policy · image usage + generated-image style · generation mode · refine-spec toggle | the confirmed Tier 1 |
 
 > **Why two tiers.** Every realization field is anchored by the same few choices (`visual_style` anchors color / icon / typography / image; `delivery_purpose` sets the body size, page density, **and** the page-count recommendation). Confirming anchors first, then re-deriving, means Tier 2's candidates fit the user's *real* anchors instead of your originals — the coherence reconciliation below is done by construction on this path. Page count is a **derived** field (content volume × `delivery_purpose`), which is why it lives in Tier 2, not up front.
 
@@ -349,7 +377,7 @@ Steps:
    python3 ${SKILL_DIR}/scripts/confirm_ui/server.py <project_path> --daemon --wait
    ```
    Page opens at `http://localhost:5050` — the **same port as the Step 6 live preview** (they never run at once: this page shuts down at the end of Step 4). If 5050 is held, the launcher **auto-advances** (5051, …) — read the actual URL from the launch log and report it. The page does **not** close after Tier 1: it shows a "deriving…" state and polls for Tier 2. **Launch or wait failure is non-fatal**: if it fails or times out (flask missing, port blocked, no GUI / remote / web host), do **NOT** troubleshoot — **on any non-zero exit, re-check `result.json` once** (a fresh `status: tier1-confirmed`) before dropping to the chat fallback. **On success (exit 0 with a tier-1 result), do not pause or report — go straight to step 3 in the same turn.**
-3. **Re-derive Tier 2 from the confirmed anchors, then write it — immediately, same turn (the page is polling for it).** Read the tier-1 `result.json` (`status: tier1-confirmed`). Using the user's **actual** confirmed anchors (not your originals), author the realization candidates and **overwrite** `recommendations.json` with `"tier": 2`: page count (content volume × `delivery_purpose`); color, typography, and generated-image style as **generative ≥3-candidate** fields (creative recommendations always offer real choice — same rule as h.5; fewer than 3 only on the honest-shortfall exception, with a stated reason; color: core `palette` with background/secondary_bg/primary/accent/secondary_accent/body_text; typography: CJK + Latin for `heading` and `body` with `css` preview stacks + `body_size` as the body baseline in **px** (every canvas) — **one fixed value per confirmed `delivery_purpose`** (`text` 20 / `balanced` 24 / `presentation` 32), not a range; images: `image_strategy.candidates` rendering × palette from h.5); enumerable `icons` / `formula_policy` / `generation_mode` (recommended `id`); `image_usage` (`ai` / `web` / `provided` / `placeholder` / `none`, or a custom prose plan when several sources mix — never bare `"custom"`; write `image_ai_path` only when the plan includes AI). The still-open page polls, renders Tier 2, and preserves the user's Tier 1 picks. Closed fields (`image_ai_path`, `formula_policy`, `generation_mode`, `refine_spec`) stay finite; open fields (`icons`, `image_usage`, typography custom text) show a Custom box.
+3. **Re-derive Tier 2 from the confirmed anchors, then write it — immediately, same turn (the page is polling for it).** Read the tier-1 `result.json` (`status: tier1-confirmed`). Using the user's **actual** confirmed anchors (not your originals), author the realization candidates and **overwrite** `recommendations.json` with `"tier": 2`: page count (content volume × `delivery_purpose`); color, typography, and generated-image style as **generative ≥3-candidate** fields (creative recommendations always offer real choice — same rule as h.5; fewer than 3 only on the honest-shortfall exception, with a stated reason; color: core `palette` with background/secondary_bg/primary/accent/secondary_accent/body_text; typography: CJK + Latin for `heading` and `body` with `css` preview stacks + `body_size` as the body baseline in **px** (every canvas) — **one fixed value per confirmed `delivery_purpose`** (`text` 20 / `balanced` 24 / `presentation` 32), not a range; each typography candidate must include topic-matched `sample_heading` / `sample_heading_latin` / `sample_body` / `sample_body_latin` preview text, never a fixed unrelated industry sample; images: `image_strategy.candidates` rendering × palette from h.5); enumerable `icons` / `formula_policy` / `generation_mode` (recommended `id`); `image_usage` as one or more source ids (`["ai"]`, `["ai","provided"]`, `["web","placeholder"]`, or `["none"]`; `none` is exclusive). If the recommendation involves several sources, keep the source list structured in `recommend.image_usage` and write the usage rationale / page-role guidance into `image_notes` (for example, "封面和章节页用 AI 主视觉，产品页优先用户素材，行业背景页可用网络参考"). Write `image_ai_path` only when `image_usage` includes `ai`. The still-open page polls, renders Tier 2, and preserves the user's Tier 1 picks. Closed fields (`image_ai_path`, `formula_policy`, `generation_mode`, `refine_spec`) stay finite; open fields (`icons`, typography custom text, image notes) expose free-text controls.
 4. **Wait for the final confirmation** — attach to the already-running page, do **not** relaunch (same 600000 ms budget):
    ```bash
    python3 ${SKILL_DIR}/scripts/confirm_ui/server.py <project_path> --wait-only
@@ -363,17 +391,20 @@ Steps:
 
 **Always also print each tier's recommendations + URL in chat** as the always-valid fallback. **The chat fallback is two-step too**: if the page never opens or a wait times out with no fresh result, present Tier 1 in chat → get confirmation → re-derive → present Tier 2 → get confirmation → take those values. Either path converges.
 
-**Honoring the confirmation (result.json is authoritative — Mandatory)**: the confirmed values **override your own recommendations** when you write `design_spec.md` / `spec_lock.md`. A user who changed any field changed it on purpose. In particular, map `image_usage` to §VIII `Acquire Via` (its value names differ from §h options — translate):
+**Honoring the confirmation (result.json is authoritative — Mandatory)**: the confirmed values **override your own recommendations** when you write `design_spec.md` / `spec_lock.md`. A user who changed any field changed it on purpose. In particular, map `image_usage` to §VIII `Acquire Via` (its value names differ from §h options — translate). `image_usage` may be either a legacy single string or a Confirm UI multi-select array; for arrays, apply every selected source. `image_notes`, when present, is a user-authored image intent note that Strategist must honor while assigning per-page §VIII rows:
 
 | `result.json.image_usage` | §VIII `Acquire Via` | h.5 + Step 5 generation |
 |---|---|---|
-| `ai` (or a custom plan that includes AI) | `ai` rows | Run h.5 (lock rendering + palette); Step 5 generates |
+| `ai` | `ai` rows | Run h.5 (lock rendering + palette); Step 5 generates |
 | `web` | `web` rows | None |
 | `provided` | **`user`** rows | None — never generate |
 | `placeholder` | `placeholder` rows | None |
 | `none` | no image rows (§h option A) | None |
+| Legacy custom prose | Infer the intended rows from the prose | Run h.5 only if the prose includes AI |
 
-When the confirmed `image_usage` is not `ai` (and the plan has no AI part), do **NOT** run h.5, do **NOT** write `ai` rows, and do **NOT** generate images in Step 5 — regardless of what you recommended. The same "confirmed value wins" rule applies to every field (color → §III, typography → §IV, etc.).
+When the confirmed `image_usage` does not include `ai` (and no legacy custom prose includes AI), do **NOT** run h.5, do **NOT** write `ai` rows, and do **NOT** generate images in Step 5 — regardless of what you recommended. `none` is exclusive: if confirmed, write no §VIII image rows. The same "confirmed value wins" rule applies to every field (color → §III, typography → §IV, etc.).
+
+**Small spot illustrations are a Strategist judgment, not a confirmation field.** The user chooses image source through `image_usage`; within that boundary, Strategist may proactively add a coherent family of small decorative illustrations when the confirmed style and content benefit from them. They are ordinary §VIII image rows (`Type: Illustration` / `Illustration Sheet`) using normal `Acquire Via` values. `image_usage: none` still wins: write no decorative illustration rows. If the plan needs ≥3 same-family AI spot illustrations, use the `ai` Illustration Sheet + `slice` workflow by default; do not generate one AI image per spot. Use them on suitable pages and omit them where they would weaken clarity.
 
 **Upstream override → re-derive untouched downstream (Mandatory — chat-fallback / single-pass path).** On the **two-tier page path this is already handled** (Step 3 re-derives Tier 2 from the user's actual anchors). It still applies whenever anchors and realization are confirmed **together** — the two-step chat fallback collapsed into one bundle, or a legacy single-pass `result.json`. "Confirmed value wins" governs each field's *own* value — never recompute a value the user set (a size, canvas, or palette they edited stays verbatim). But a single-pass `result.json` can carry a changed **anchor** beside downstream fields still holding your original — now incoherent — recommendation (e.g. switched to `dark-tech` while the light palette you proposed is untouched). Before writing the spec, reconcile: when the user changed an anchor, re-derive the downstream fields the user did **not** themselves edit so they realize the new anchor; fields the user pinned stay as confirmed.
 
@@ -453,7 +484,7 @@ python3 ${SKILL_DIR}/scripts/analyze_images.py <project_path>/images
 
 🚧 **GATE**: Step 4 complete; Design Specification & Content Outline generated and user confirmed. Any formula rows already have `Acquire Via: formula` and `Status: Rendered`.
 
-> **Trigger**: At least one row in the resource list has `Acquire Via: ai` and/or `Acquire Via: web`. If every row is `user`, `formula`, or `placeholder`, skip to Step 6.
+> **Trigger**: At least one row in the resource list has `Acquire Via: ai`, `web`, and/or `slice`. If every row is `user`, `formula`, or `placeholder`, skip to Step 6.
 
 **Always load the common framework**:
 
@@ -467,7 +498,8 @@ Then **lazy-load the path-specific reference** for each row that actually needs 
 |---|---|---|
 | `ai` | `references/image-generator.md` | `python3 ${SKILL_DIR}/scripts/image_gen.py --manifest <project_path>/images/image_prompts.json` |
 | `web` | `references/image-searcher.md` | `python3 ${SKILL_DIR}/scripts/image_search.py ...` (≥2 web rows → `--batch images/image_queries.json`) |
-| `user` / `placeholder` | (skip) | (skip) |
+| `slice` | `references/image-generator.md` §4.3 | derived — **after** the parent `ai` sheet row is `Generated`, run `python3 ${SKILL_DIR}/scripts/slice_images.py <project_path>/images/<sheet>.png --grid RxC --names ... --trim --alpha` (see workflow step 2.5) |
+| `user` / `formula` / `placeholder` | (skip) | (skip) |
 
 A deck with only `ai` rows never loads `image-searcher.md`; a deck with only `web` rows never loads `image-generator.md`. A mixed deck loads both, processes each row through its own path, and writes both `image_prompts.json` and `image_sources.json`.
 
@@ -475,14 +507,17 @@ A deck with only `ai` rows never loads `image-searcher.md`; a deck with only `we
 
 > ⚠️ **web path — batch multiple rows**: when ≥2 rows are `Acquire Via: web`, write all queries into `images/image_queries.json` and run `image_search.py --batch` once (concurrent acquisition, status written back), instead of one CLI call per row. A single web row may use the positional single-query form. See [image-searcher.md](references/image-searcher.md) §5.
 
+> 💡 **ai path — spot illustrations as one sheet**: when the §VIII image resource plan needs ≥3 same-family spot illustrations as decorative accessories, generate **one grid sheet** (a single `ai` sheet row) instead of one row per element, then slice it (workflow step 2.5 below). Choose sheet geometry from intended placement: `1xN` / `Nx1` are useful for extreme portrait / landscape cells, and a designed `MxN` grid is valid when its cell ratio fits the planned elements. The sheet row is generated but not placed; each cut **element row** (`Acquire Via: slice`) is placed and must appear in `spec_lock.md images`. One generation = one coherent style across all pieces. Resource contract + the geometry rules: [image-generator.md](references/image-generator.md) §4.3.
+
 > ⚠️ **Honor the confirmed image source**: the `ai` generation path (Path A = `image_gen.py` API / Path B = host-native tool / Offline Manual) is **not** auto-only — a confirmed choice other than `auto` wins, whether it came from chat (canonical) or, when the page was used, `result.json.image_ai_path`. `host-native` forces Path B even when `IMAGE_BACKEND` is configured; `api` forces Path A; `manual` forces offline. The `--manifest` command above is Path A. Full selection rule: [image-generator.md](references/image-generator.md) §7 Path Selection.
 
 Workflow:
 
-1. Extract all rows with `Status: Pending` and `Acquire Via ∈ {ai, web}` from the design spec
-2. Generate prompts (ai rows) and/or run search (web rows) per [image-base.md](references/image-base.md) §2 dispatch table
-3. Verify every row reaches a terminal status: `Generated` (ai success), `Sourced` (web success), or `Needs-Manual`
-4. Re-derive image facts now that web / AI files are in the folder — `python3 ${SKILL_DIR}/scripts/analyze_images.py <project_path>/images` — so `analysis/image_analysis.csv` reflects every acquired image (real measured sizes) before the Executor lays them out. Image facts are regenerated on use, never a stale store (see Step 4's image-facts note).
+1. Extract all resource rows from the design spec and group them by `Acquire Via`; rows with `Status: Pending` and `Acquire Via ∈ {ai, web, slice}` must all reach a terminal state before Executor starts
+2. Generate prompts (ai rows) and/or run search (web rows) per [image-base.md](references/image-base.md) §3 dispatch table
+2.5. **Slice any spot-illustration sheets (only if `slice` rows exist).** For each generated `ai` **sheet** row, run `slice_images.py` (grid + the element `--names` matching the `slice` rows, `--trim --alpha`) so every element file lands in `images/`; mark each `slice` row `Generated`. A sheet still in `Needs-Manual` cannot be sliced — leave its `slice` rows `Needs-Manual` and surface them at the Step 7 readiness gate. Contract: [image-generator.md](references/image-generator.md) §4.3.
+3. Verify every row reaches a terminal status: `Generated` (ai success / sliced element), `Sourced` (web success), or `Needs-Manual`
+4. Re-derive image facts now that web / AI / sliced files are in the folder — `python3 ${SKILL_DIR}/scripts/analyze_images.py <project_path>/images` — so `analysis/image_analysis.csv` reflects every acquired image **including the sliced elements** (real measured sizes) before the Executor lays them out. Image facts are regenerated on use, never a stale store (see Step 4's image-facts note).
 
 **✅ Checkpoint — Confirm acquisition attempted for every row**:
 ```markdown
@@ -490,8 +525,9 @@ Workflow:
 - [x] image_prompts.json created (when any ai rows processed)
 - [x] image_prompts.md sidecar rendered (when any ai rows processed)
 - [x] image_sources.json created (when any web rows processed)
+- [x] Spot-illustration sheets sliced (when any `slice` rows exist); every element file present in `images/` and listed in `spec_lock.md images`
 - [x] Each row: status is `Generated` / `Sourced` / `Needs-Manual` (no `Pending` remaining)
-- [x] analyze_images.py re-run so image_analysis.csv covers the acquired web / AI images
+- [x] analyze_images.py re-run so image_analysis.csv covers the acquired web / AI / sliced images
 ```
 
 **Default — auto-proceed to Step 6.** Only when the user's Step 4 response explicitly opted into split mode (in chat or via Confirm UI `result.json` with `generation_mode: "split"`), output the Phase A hand-off below and stop this conversation:
@@ -576,6 +612,8 @@ python3 ${SKILL_DIR}/scripts/svg_quality_checker.py <project_path>
 🚧 **Image readiness GATE** (when Step 5 left ai rows in `Needs-Manual`): every expected file must exist at `project/images/<filename>` before running 7.1.
 
 > If files are missing: PAUSE, list the missing filenames, point the user to `images/image_prompts.md` (each `### Image N:` block is paste-ready for ChatGPT / Gemini / Midjourney; auto-generated from `image_prompts.json`) and the required placement `project/images/<filename>`. Resume Step 7.1 only after all expected files are in place. `finalize_svg.py` and `svg_to_pptx.py` do not detect missing files at this layer — proceeding with gaps produces a deck with broken image references.
+
+> **Spot-illustration sheets at this gate**: `slice` element files are **derived**, not placed by the user. If a sheet was `Needs-Manual` (offline), the element files do not exist yet — list the **sheet** filename (`images/<sheet>.png`) plus its element target names, and instruct: place the sheet, then run the Step 5 `slice_images.py` command for it, then re-run `analyze_images.py`, before resuming 7.1. Never tell the user to hand-place the individual element files — they only come from slicing the sheet.
 
 > ⚠️ Run the three sub-steps **one at a time** — each must complete successfully before the next.
 > ❌ **NEVER** combine them into a single code block or shell invocation.
