@@ -43,15 +43,11 @@ Convenience summary only — full workflow in [`skills/ppt-master/SKILL.md`](ski
 
 ```bash
 # Source content conversion
-python3 skills/ppt-master/scripts/source_to_md/pdf_to_md.py <PDF_file>
-python3 skills/ppt-master/scripts/source_to_md/doc_to_md.py <DOCX_or_other_file>
-python3 skills/ppt-master/scripts/source_to_md/excel_to_md.py <XLSX_or_XLSM_file>
-python3 skills/ppt-master/scripts/source_to_md/ppt_to_md.py <PPTX_file>
-python3 skills/ppt-master/scripts/source_to_md/web_to_md.py <URL>
+python3 skills/ppt-master/scripts/source_to_md.py <file_or_URL_or_dir> [<file_or_URL_or_dir> ...]
 
 # Project management
 python3 skills/ppt-master/scripts/project_manager.py init <project_name> --format ppt169
-python3 skills/ppt-master/scripts/project_manager.py import-sources <project_path> <source_files_or_URLs...> --move
+python3 skills/ppt-master/scripts/project_manager.py import-sources <project_path> <source_files_or_dirs_or_URLs...> --move
 python3 skills/ppt-master/scripts/project_manager.py validate <project_path>
 
 # Icon selection — copy chosen library icons into <project>/icons/ (missing names reported + non-zero = re-pick)
@@ -62,6 +58,10 @@ python3 skills/ppt-master/scripts/confirm_ui/server.py <project_path> --daemon -
 
 # Image tools and SVG quality check
 python3 skills/ppt-master/scripts/analyze_images.py <project_path>/images
+# Formula rendering — manifest written by Strategist after typography confirmation:
+python3 skills/ppt-master/scripts/latex_render.py <project_path>
+python3 skills/ppt-master/scripts/latex_render.py <project_path> --dry-run
+python3 skills/ppt-master/scripts/latex_render.py <project_path> --providers codecogs,quicklatex,mathpad,wikimedia
 # In-pipeline AI image generation — manifest mode (required, even for 1 image):
 python3 skills/ppt-master/scripts/image_gen.py --manifest <project_path>/images/image_prompts.json
 python3 skills/ppt-master/scripts/image_gen.py --render-md <project_path>/images/image_prompts.json
