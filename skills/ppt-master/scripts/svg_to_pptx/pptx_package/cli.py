@@ -8,6 +8,7 @@ import shutil
 import argparse
 from datetime import datetime
 from pathlib import Path
+from xml.etree import ElementTree as ET
 
 _SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(_SCRIPTS_DIR) not in sys.path:
@@ -28,8 +29,19 @@ if __package__ in {None, ''}:
 from .dimensions import CANVAS_FORMATS, get_project_info, get_viewbox_dimensions
 from .discovery import find_svg_files, find_notes_files
 from .builder import create_pptx_with_native_svg
+from ..drawingml.theme_colors import ThemeColorError, load_theme_color_spec
+from ..drawingml.theme_fonts import ThemeFontError, load_theme_font_spec
 from .narration import NARRATION_EXTENSIONS, find_narration_files, probe_audio_duration
 from .slide_xml import TRANSITIONS
+from .template_structure import (
+    TemplateStructureError,
+    load_native_structure_contract,
+    load_pptx_structure_lock,
+    native_structure_lock_errors,
+    parse_preserve_slides,
+    parse_template_slides,
+    template_lock_errors,
+)
 from ..animation_config import load_animation_config, validate_animation_config
 
 try:
@@ -40,6 +52,23 @@ except ImportError:
 
 def _as_dict(value: object) -> dict:
     return value if isinstance(value, dict) else {}
+
+
+def _native_object_fallbacks(svg_files: list[Path]) -> list[tuple[str, str, str]]:
+    """Return fallback-only native object statuses from SVG inputs."""
+    fallbacks: list[tuple[str, str, str]] = []
+    for svg_path in svg_files:
+        try:
+            root = ET.parse(svg_path).getroot()
+        except (OSError, ET.ParseError):
+            continue
+        for elem in root.iter():
+            status = elem.get('data-pptx-native-status')
+            if not status or elem.tag.rsplit('}', 1)[-1] == 'metadata':
+                continue
+            marker_id = elem.get('id') or elem.get('data-name') or '<unnamed>'
+            fallbacks.append((svg_path.name, marker_id, status))
+    return fallbacks
 
 
 def _recorded_narration_on_click_slides(
@@ -85,13 +114,11 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     parser = argparse.ArgumentParser(
-        description='PPT Master - SVG to PPTX Tool (Office Compatibility Mode)',
+        description='PPT Master - SVG to native DrawingML PPTX Tool',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f'''
 Examples:
     %(prog)s examples/ppt169_demo                         # Default: native pptx -> exports/, svg_output -> backup/<ts>/
-    %(prog)s examples/ppt169_demo --svg-snapshot         # Also emit SVG-rendered snapshot pptx
-    %(prog)s examples/ppt169_demo --only legacy          # Only SVG image version (skips native)
     %(prog)s examples/ppt169_demo -o out.pptx            # Explicit path (no backup/)
 
     # Disable transition / change transition effect
@@ -100,9 +127,9 @@ Examples:
 
 SVG source directory (-s):
     output   - svg_output (hand-authored source; native default)
-    final    - svg_final (post-processed; legacy SVG-image path source)
+    final    - svg_final (post-processed preview; diagnostic native input only)
     <any>    - Specify a subdirectory name directly
-    Omit -s to use the default: native reads svg_output, legacy reads svg_final.
+    Omit -s to use the default: native export reads svg_output.
 
 Transition effects (-t/--transition):
     {', '.join(transition_choices)}
@@ -124,13 +151,6 @@ Per-element entrance animation (-a/--animation, native shapes mode):
            mixed (legacy) cycles a larger 16-effect pool by group order;
            random samples from the same legacy pool. Use "-a none" to disable
            element builds explicitly.
-
-Compatibility mode (enabled by default):
-    - Automatically generates PNG fallback images, SVG embedded as extension
-    - Compatible with all Office versions (including Office LTSC 2021)
-    - Newer Office still displays SVG (editable), older versions display PNG
-    - Requires svglib: pip install svglib reportlab
-    - Use --no-compat to disable (only Office 2019+ supported)
 
 Speaker notes (enabled by default):
     - Automatically reads Markdown notes files from the notes/ directory
@@ -157,24 +177,13 @@ Recorded narration:
     parser.add_argument('project_path', type=str, help='Project directory path')
     parser.add_argument('-o', '--output', type=str, default=None, help='Output file path')
     parser.add_argument('-s', '--source', type=str, default=None,
-                        help='SVG source directory. Default: native reads '
-                             'svg_output/ (high-fidelity, preserves icons / '
-                             'preserveAspectRatio / rx-ry); legacy reads '
-                             'svg_final/ (PPT-internal SVG parser fallback). '
-                             'Pass output/final/<name> to force one source.')
+                        help='Native SVG source directory. Default: svg_output/. '
+                             'Pass output/final/<name> only for diagnostics.')
     parser.add_argument('-f', '--format', type=str,
                         choices=list(CANVAS_FORMATS.keys()), default=None,
                         help='Specify canvas format')
     parser.add_argument('-q', '--quiet', action='store_true', help='Quiet mode')
 
-    parser.add_argument('--no-compat', action='store_true',
-                        help='Disable Office compatibility mode (pure SVG only, requires Office 2019+)')
-
-    mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument('--only', type=str, choices=['native', 'legacy'], default=None,
-                            help='Only generate one version: native (editable shapes) or legacy (SVG image)')
-    mode_group.add_argument('--native', action='store_true', default=False,
-                            help='(Deprecated, now default) Convert SVG to native DrawingML shapes')
     merge_group = parser.add_mutually_exclusive_group()
     merge_group.add_argument('--merge-paragraphs', action='store_true', dest='merge_paragraphs',
                              help='Compatibility no-op: mergeable paragraph blocks are merged '
@@ -193,14 +202,22 @@ Recorded narration:
                              'groups export through their SVG fallback children. When set, '
                              'the default-flow export is named <project>_<ts>_native_charts.pptx '
                              'to tell it apart from a plain shape export.')
-    parser.add_argument('--svg-snapshot', action='store_true', default=False,
-                        help='Also emit the SVG-rendered snapshot pptx alongside '
-                             'the native pptx in exports/ (named '
-                             '<project>_<ts>_svg.pptx). Off by default — the '
-                             'native pptx is the canonical output; live preview '
-                             'already provides the SVG visual reference. '
-                             'Note: the svg_output/ source snapshot is always written to backup/<ts>/ '
-                             'regardless of this flag.')
+    parser.add_argument(
+        '--pptx-structure',
+        choices=['baseline', 'template', 'preserve', 'flat'],
+        default=None,
+        help=(
+            'PPTX structure strategy for native export. When omitted, read '
+            'spec_lock.md pptx_structure.mode, falling back to baseline. baseline '
+            'promotes safe repeated background/chrome and extracts conservative '
+            'semantic page-role layout families plus exact family-wide '
+            'structurally marked chrome (legacy filenames/ids remain fallbacks); '
+            'template consumes explicit '
+            'data-pptx-layout/layer/placeholder metadata to build reusable layouts; '
+            'preserve is legacy compatibility for imported source packages; '
+            'flat leaves generated structure slide-local for debugging/comparison.'
+        ),
+    )
     parser.add_argument('--no-image-optimize', action='store_true',
                         help='Disable native PPTX raster image optimization; embeds original image bytes.')
     parser.add_argument('--image-max-dimension', type=int, default=2560,
@@ -269,26 +286,53 @@ Recorded narration:
     parser.add_argument('--narration-padding', type=float, default=0.5,
                         help='Seconds to add after each narration before auto-advance (default: 0.5)')
 
-    parser.add_argument('--cache-dir', type=str, default=None,
-                        help='Cache directory for SVG→PNG renders (default: '
-                             '<project>/.cache/svg_png). Cache key uses SVG content '
-                             'hash + size + renderer; safe across renderer switches. '
-                             'Removed automatically after a successful export.')
-    parser.add_argument('--no-cache', action='store_true',
-                        help='Disable the SVG→PNG cache for this run (still parallel).')
-    parser.add_argument('--keep-cache', action='store_true',
-                        help='Keep the SVG→PNG cache directory after export '
-                             '(default: removed on success to keep project clean).')
-    parser.add_argument('--workers', type=int, default=None,
-                        help='Parallel workers for SVG→PNG pre-rendering. '
-                             'Default: min(cpu, pages, 8). Set 1 for sequential.')
-
     args = parser.parse_args(argv)
 
     project_path = Path(args.project_path)
     if not project_path.exists():
         print(f"Error: Path does not exist: {project_path}")
         return 1
+    structure_lock = None
+    native_structure_contract = None
+    pptx_structure = args.pptx_structure
+    if pptx_structure is None:
+        try:
+            structure_lock = load_pptx_structure_lock(project_path)
+        except TemplateStructureError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+        pptx_structure = structure_lock.mode if structure_lock else 'baseline'
+    elif pptx_structure == 'preserve':
+        try:
+            structure_lock = load_pptx_structure_lock(project_path)
+        except TemplateStructureError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+        if structure_lock is None or structure_lock.mode != 'preserve':
+            print(
+                "Error: --pptx-structure preserve requires a preserve-mode "
+                "spec_lock.md with source_template/native_structure rows",
+                file=sys.stderr,
+            )
+            return 1
+    if pptx_structure == 'preserve':
+        if structure_lock is None:
+            print("Error: preserve mode requires spec_lock.md", file=sys.stderr)
+            return 1
+        try:
+            native_structure_contract = load_native_structure_contract(structure_lock)
+        except TemplateStructureError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+    theme_font_spec = None
+    theme_color_spec = None
+    if pptx_structure in {'baseline', 'template'}:
+        try:
+            theme_font_spec = load_theme_font_spec(project_path)
+            theme_color_spec = load_theme_color_spec(project_path)
+        except (ThemeFontError, ThemeColorError) as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
     if args.image_max_dimension < 1:
         print("Error: --image-max-dimension must be >= 1", file=sys.stderr)
         return 1
@@ -311,80 +355,86 @@ Recorded narration:
     if canvas_format is None and detected_format and detected_format != 'unknown':
         canvas_format = detected_format
 
-    # Determine which versions to generate.
-    # Default is native-only; SVG snapshot is opt-in via --svg-snapshot.
-    # --only native / --only legacy still force a single version explicitly.
-    only_mode = args.only
-    if only_mode == 'native':
-        gen_native, gen_legacy = True, False
-    elif only_mode == 'legacy':
-        gen_native, gen_legacy = False, True
-    else:
-        gen_native = True
-        gen_legacy = args.svg_snapshot
-
-    # Pipeline split: native pptx gets the high-fidelity svg_output/ source
-    # (icons, preserveAspectRatio, rounded-rect rx/ry are all preserved by the
-    # converter); legacy pptx still needs svg_final/ because PowerPoint's
-    # internal SVG parser cannot handle <use data-icon> or honour
-    # preserveAspectRatio. An explicit -s overrides both branches so callers
-    # can keep the previous single-source behaviour for unusual workflows.
-    explicit_source = args.source is not None
-    native_source = args.source if explicit_source else 'output'
-    legacy_source = args.source if explicit_source else 'final'
-
-    native_files: list[Path] = []
-    legacy_files: list[Path] = []
-    native_source_dir = ''
-    legacy_source_dir = ''
-
-    if gen_native:
-        native_files, native_source_dir = find_svg_files(project_path, native_source)
-    if gen_legacy:
-        legacy_files, legacy_source_dir = find_svg_files(project_path, legacy_source)
-
-    # Reference list for cross-product lookups (notes / narration matching).
-    # native_files and legacy_files share filenames because svg_final/ is
-    # copytree'd from svg_output/, so either list works for matching.
-    ref_files = native_files or legacy_files
-    if not ref_files:
+    # Native DrawingML is the only PPTX product. ``-s`` remains an explicit
+    # diagnostic source override; standard export always reads svg_output/.
+    native_source = args.source or 'output'
+    native_files, native_source_dir = find_svg_files(project_path, native_source)
+    ref_files = native_files
+    if not native_files:
         print("Error: No SVG files found")
         return 1
+
+    if (
+        pptx_structure in {'template', 'preserve'}
+        and structure_lock is not None
+    ):
+        try:
+            template_specs = (
+                parse_preserve_slides(native_files)
+                if pptx_structure == 'preserve'
+                else parse_template_slides(native_files)
+            )
+        except TemplateStructureError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+        lock_errors = template_lock_errors(template_specs, structure_lock)
+        if lock_errors:
+            print("Error: PPTX structure does not match spec_lock.md:", file=sys.stderr)
+            for message in lock_errors:
+                print(f"  {message}", file=sys.stderr)
+            return 1
+        if pptx_structure == 'preserve':
+            if native_structure_contract is None:
+                print("Error: preserve mode contract is unavailable", file=sys.stderr)
+                return 1
+            preserve_errors = native_structure_lock_errors(
+                template_specs,
+                structure_lock,
+                native_structure_contract,
+            )
+            if preserve_errors:
+                print(
+                    "Error: PPTX structure does not match native_structure.json:",
+                    file=sys.stderr,
+                )
+                for message in preserve_errors:
+                    print(f"  {message}", file=sys.stderr)
+                return 1
+
+    if args.native_objects:
+        fallbacks = _native_object_fallbacks(native_files)
+        if fallbacks:
+            print(
+                "Warning: --native-objects found fallback-only PPTX objects; "
+                "they will export through their SVG preview instead of editable objects.",
+                file=sys.stderr,
+            )
+            for filename, marker_id, status in fallbacks[:20]:
+                print(f"  {filename}: {marker_id} ({status})", file=sys.stderr)
+            if len(fallbacks) > 20:
+                print(f"  ... and {len(fallbacks) - 20} more", file=sys.stderr)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     backup_dir: Path | None = None
-    legacy_path: Path | None = None
     if args.output:
-        output_base = Path(args.output)
-        native_path = output_base
-        if gen_legacy:
-            stem = output_base.stem
-            legacy_path = output_base.parent / f"{stem}_svg{output_base.suffix}"
+        native_path = Path(args.output)
     else:
         exports_dir = project_path / "exports"
         exports_dir.mkdir(parents=True, exist_ok=True)
         # --native-objects yields a materially different file (real editable
         # PowerPoint chart/table objects instead of flattened shapes), so mark
-        # it in the default-flow name to tell it apart from a plain shape export
-        # and the _svg snapshot. Narration flags likewise mark _narrated (audio
-        # embedded per slide + auto-advance timings); both entry points share
-        # the tag. Flag-driven (not content-sniffed) so the name is predictable;
-        # an explicit -o keeps the caller's exact name untouched.
+        # it in the default-flow name to tell it apart from a plain shape export.
+        # Narration flags likewise mark _narrated (audio embedded per slide +
+        # auto-advance timings). Flag-driven (not content-sniffed) so the name
+        # is predictable; an explicit -o keeps the caller's exact name untouched.
         native_tag = "_native_charts" if args.native_objects else ""
         narrated_tag = "_narrated" if (args.recorded_narration or args.narration_audio_dir) else ""
         native_path = exports_dir / f"{project_name}_{timestamp}{native_tag}{narrated_tag}.pptx"
-        # svg_output/ snapshot always goes under backup/<ts>/ in default-flow
-        # mode (no -o). --svg-snapshot only controls the optional legacy
-        # SVG-rendered pptx, which now sits alongside the native pptx in
-        # exports/ rather than nested inside backup/.
+        # Preserve the authored svg_output/ beside every default-flow export.
         backup_dir = project_path / "backup" / timestamp
-        if gen_legacy:
-            legacy_path = exports_dir / f"{project_name}_{timestamp}_svg.pptx"
 
     native_path.parent.mkdir(parents=True, exist_ok=True)
-    if legacy_path is not None:
-        legacy_path.parent.mkdir(parents=True, exist_ok=True)
 
     verbose = not args.quiet
 
@@ -542,7 +592,7 @@ Recorded narration:
         'animation_trigger': args.animation_trigger is not None,
     }
 
-    if args.recorded_narration and gen_native:
+    if args.recorded_narration:
         on_click_slides = _recorded_narration_on_click_slides(
             ref_files,
             animation_config,
@@ -562,17 +612,6 @@ Recorded narration:
                 print(f"  ... and {len(on_click_slides) - 20} more", file=sys.stderr)
             return 1
 
-    if args.no_cache:
-        cache_dir: Path | None = None
-    elif args.cache_dir:
-        cache_dir = Path(args.cache_dir)
-        if not cache_dir.is_absolute():
-            cache_dir = project_path / cache_dir
-    else:
-        cache_dir = project_path / '.cache' / 'svg_png'
-
-    # svg_files is per-product (native vs legacy may now read different
-    # directories); everything else is shared.
     # Optional per-project document properties. Absent file → factual fields
     # are still stamped at export; only the authored fields stay blank.
     doc_metadata = None
@@ -597,7 +636,6 @@ Recorded narration:
         transition=transition,
         transition_duration=transition_duration,
         auto_advance=args.auto_advance,
-        use_compat_mode=not args.no_compat,
         notes=notes,
         enable_notes=enable_notes,
         animation=animation,
@@ -609,8 +647,6 @@ Recorded narration:
         narration_audio=narration_audio,
         use_narration_timings=use_narration_timings,
         narration_padding=args.narration_padding,
-        cache_dir=cache_dir,
-        workers=args.workers,
         merge_paragraphs=args.merge_paragraphs,
         image_optimize=not args.no_image_optimize,
         image_max_dimension=args.image_max_dimension,
@@ -618,21 +654,22 @@ Recorded narration:
         image_scale=args.image_scale,
         image_quality=args.image_quality,
         native_objects=args.native_objects,
+        pptx_structure=pptx_structure,
+        native_structure_contract=native_structure_contract,
+        theme_font_spec=theme_font_spec,
+        theme_color_spec=theme_color_spec,
     )
 
-    success = True
+    if verbose:
+        print("PPT Master - SVG to native DrawingML PPTX Tool")
+        print("=" * 50)
+        print(f"  Project path: {project_path}")
+        print(f"  SVG directory: {native_source_dir}")
+        print(f"  Output file: {native_path}")
+        print()
 
-    # --- Native shapes version (primary) ---
-    if gen_native:
-        if verbose:
-            print("PPT Master - SVG to PPTX Tool")
-            print("=" * 50)
-            print(f"  Project path: {project_path}")
-            print(f"  SVG directory: {native_source_dir}")
-            print(f"  Output file: {native_path}")
-            print()
-
-        ok = create_pptx_with_native_svg(
+    try:
+        success = create_pptx_with_native_svg(
             output_path=native_path,
             use_native_shapes=True,
             svg_files=native_files,
@@ -642,32 +679,13 @@ Recorded narration:
             ),
             **shared_kwargs,
         )
-        success = success and ok
+    except TemplateStructureError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
 
-    # --- SVG image reference version ---
-    if gen_legacy:
-        if verbose:
-            if gen_native:
-                print()
-                print("-" * 50)
-            print("PPT Master - SVG to PPTX Tool (SVG Reference)")
-            print("=" * 50)
-            print(f"  Project path: {project_path}")
-            print(f"  SVG directory: {legacy_source_dir}")
-            print(f"  Output file: {legacy_path}")
-            print()
-
-        ok = create_pptx_with_native_svg(
-            output_path=legacy_path,
-            use_native_shapes=False,
-            svg_files=legacy_files,
-            **shared_kwargs,
-        )
-        success = success and ok
-
-    # svg_output/ snapshot — runs once per export in default-flow mode,
-    # decoupled from --svg-snapshot. Preserves the AI-generated SVG sources
-    # under backup/<ts>/svg_output/ for later inspection / re-export.
+    # Archive svg_output/ once per default-flow export. This preserves the
+    # authored SVG sources under backup/<ts>/svg_output/ for inspection and
+    # deterministic re-export.
     if success and backup_dir is not None:
         svg_output_src = project_path / "svg_output"
         if svg_output_src.is_dir():
@@ -682,16 +700,26 @@ Recorded narration:
                     print(f"  [warn] svg_output backup skipped: {exc}")
         elif verbose:
             print(f"  [info] svg_output/ not found, backup skipped")
-
-    if success and cache_dir is not None and cache_dir.is_dir() and not args.keep_cache:
-        try:
-            shutil.rmtree(cache_dir)
-            cache_parent = cache_dir.parent
-            if cache_parent.is_dir() and cache_parent.name == '.cache' and not any(cache_parent.iterdir()):
-                cache_parent.rmdir()
-        except Exception as exc:
-            if verbose:
-                print(f"  [warn] cache cleanup skipped: {exc}")
+        if pptx_structure == 'preserve' and structure_lock is not None:
+            try:
+                preserve_sources = [
+                    project_path / 'spec_lock.md',
+                    structure_lock.source_template,
+                    structure_lock.native_structure,
+                ]
+                for source in preserve_sources:
+                    if source is None or not source.is_file():
+                        continue
+                    source_path = source.resolve()
+                    relative = source_path.relative_to(project_path.resolve())
+                    destination = backup_dir / relative
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source_path, destination)
+                if verbose:
+                    print(f"  preserve contract backup: {backup_dir}")
+            except (OSError, ValueError) as exc:
+                if verbose:
+                    print(f"  [warn] preserve contract backup skipped: {exc}")
 
     return 0 if success else 1
 

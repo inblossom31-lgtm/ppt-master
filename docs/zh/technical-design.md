@@ -44,18 +44,37 @@
 [后处理] → total_md_split.py（拆分讲稿）→ finalize_svg.py → svg_to_pptx.py
     ↓
 输出：
+    svg_final/
+    └── *.svg                                           ← 强制生成的自包含视觉预览，可手动作为 SVG 图片插入
+
     exports/
-    ├── presentation_<timestamp>.pptx                ← 原生形状版（DrawingML）— 唯一标准产物，编辑/交付从这里走
-    ├── presentation_<timestamp>_native_charts.pptx  ← 原生图表/表格对象版（而非压平形状，加 --native-objects 时生成）
-    ├── presentation_<timestamp>_narrated.pptx        ← 旁白版 — 逐页嵌入音频并写入自动推进时间（加 --recorded-narration audio 时生成）
-    └── presentation_<timestamp>_svg.pptx            ← SVG 快照版 pptx — 像素级视觉参考（加 --svg-snapshot 时生成）
+    ├── presentation_<timestamp>.pptx                ← 原生形状版（DrawingML）— 唯一 PPTX 生成路线的标准文件
+    ├── presentation_<timestamp>_native_charts.pptx  ← 同一路线的原生图表/表格对象变体（加 --native-objects 时生成）
+    └── presentation_<timestamp>_narrated.pptx       ← 同一路线的旁白变体（加 --recorded-narration audio 时生成）
 
     # 默认流程（未指定 -o）始终写入
     backup/<timestamp>/
     └── svg_output/                            ← Executor 原始 SVG 备份（重跑 finalize_svg → svg_to_pptx 即可重建 pptx）
 ```
 
-以下直接 PPTX 工作流会有意绕过这条 SVG 路线：
+### SVG 是页面设计语言
+
+凡是通过 SVG 创作或重新设计页面的工作流，`svg_output/` 都是完整的页面设计权威。最终幻灯片中应出现的文字、图片、形状、图示、图表 / 表格 fallback、背景和模板派生布局元素，都必须已经存在于对应页面 SVG 中，或被它明确引用。模板、`design_spec.md` 和 `spec_lock.md` 负责指导 SVG 创作；导出器不能把它们当成第二层画面来源，在导出阶段补入 SVG 缺失的页面内容。
+
+最小语义标记不会削弱这条闭包。现有 Layout、Layer、Placeholder 与 Native metadata 始终优先。Baseline / 自由设计页面用根节点 `data-pptx-page-role` 取代仅靠文件名判断页面家族；`data-pptx-role` 只补充专用 metadata 尚未表达的少量页面框架、package 或动画行为。普通标题、正文、卡片、KPI、图示、图表、图标和图片不会被重复抄入一套 metadata 本体。
+
+| 领域 | 权威来源 |
+|---|---|
+| SVG 创作路线中的可见页面内容与布局 | `svg_output/` 中的最终页面 SVG |
+| Master/Layout/Slide 打包与原生对象映射 | SVG 到 PPTX 的翻译；可以重组 SVG 已表达的内容，但不能创造新的可见内容 |
+| 动画、转场、讲稿和旁白 | 各自的 sidecar / 资源与 PPTX package 后处理 |
+| 直接原生 PPTX 编辑 | 所选原生工作流自己的 PPTX / OOXML 契约 |
+
+这是一条“页面设计闭包”规则，不代表 SVG 要描述完整 PPTX package。相关验收是：完成的页面 SVG 能重建对应幻灯片的可见设计；不要求仅凭 SVG 重建讲稿、音频、计时、relationships 或直接原生编辑结果。
+
+`svg_final/` 不改变这条边界。Step 7 必须从 `svg_output/` 派生这组自包含视觉预览，供 IDE、浏览器查看，也可由用户手动作为 SVG 图片插入 PowerPoint；它不是第二条 PPTX 导出路线，也不承担 PowerPoint 手工“转换为形状”的兼容性。需要可编辑形状时，唯一受支持的路径是项目转换器把 `svg_output/` 翻译为原生 DrawingML PPTX。
+
+以下直接 PPTX 工作流会有意绕过 SVG 创作路线，并继续保持独立：
 
 | 工作流 | 输入角色 | 输出机制 | 为什么独立 |
 |---|---|---|---|
@@ -130,7 +149,7 @@ analysis/<stem>.slide_library.json + 源 PPTX + fill_plan.json
     └─> native_enhance_pptx.py -> exports/*.pptx
 ```
 
-关键切分是：`svg_output/` 是作者状态，`svg_final/`、`exports/` 和 `backup/` 是派生的交付或归档状态。模糊这条线，会让校验、重导出和人工修复都更难推理。
+关键切分是：`svg_output/` 是作者状态，`svg_final/` 是派生视觉预览，`exports/` 和 `backup/` 是派生的交付或归档状态。模糊这条线，会让校验、重导出和人工修复都更难推理。
 
 ---
 
@@ -157,9 +176,11 @@ SVG 胜出，因为它与 DrawingML 拥有相同的世界观：两者都是绝�
 | `linearGradient` / `radialGradient` | `<a:gradFill>` |
 | `fill-opacity` / `stroke-opacity` | `<a:alpha>` |
 
-转换不是格式错配，而是两种方言之间的精确翻译。
+这张表只展示概念对应关系，不是创作允许清单，也不承诺语义无损。受限或近似的映射统一由 [`shared-standards.md`](../../skills/ppt-master/references/shared-standards.md) 定义。
 
-SVG 也是唯一同时满足流程中所有角色需要的格式：**AI 能可靠地生成它，人能在任意浏览器里直接预览和调试，脚本能精确地转换它**——在生成任何 DrawingML 之前，设计稿就已经完全透明可见。
+转换不是格式错配，而是在两种结构相近的方言之间做翻译。
+
+SVG 也是唯一同时满足流程中所有角色需要的格式：**AI 能可靠地生成它，人能在任意浏览器里直接预览和调试，脚本能按明确的兼容合同转换它**——在生成任何 DrawingML 之前，设计稿就已经完全透明可见。
 
 ---
 
@@ -196,7 +217,7 @@ SVG 也是唯一同时满足流程中所有角色需要的格式：**AI 能可�
 | `icons/` | 由 `icon_sync.py` 复制的项目级图标集；导出时可回退到全局库 |
 | `templates/` | 复制进项目的模板 spec / SVG reference / 非图片模板资产 |
 | `svg_output/` | 唯一手写 SVG 源目录 |
-| `svg_final/` | 派生出的自包含 SVG，服务 IDE / 浏览器 / 预览快照 |
+| `svg_final/` | 强制派生的自包含视觉预览 SVG，服务 IDE / 浏览器，也可手动作为 SVG 图片插入 PowerPoint；不保证“转换为形状” |
 | `live_preview/` | 预览服务状态、直接编辑历史和注解日志 |
 | `notes/` | `total.md` 与拆分后的逐页讲稿 |
 | `exports/` | 带时间戳的 native PPTX 交付物 |
@@ -219,8 +240,9 @@ CLI 仍支持三种导入模式：`--move`、`--copy`，以及“仓库内文件
 | `design_spec.md` 解释设计；`spec_lock.md` 执行设计 | Executor 从 `spec_lock.md` 取锁定值，而不是从叙述记忆里取 |
 | 每页生成前重读 `spec_lock.md` | 长 deck 中的颜色、字体、图标、图片、节奏、布局和图表选择保持稳定 |
 | `svg_output/` 是唯一手写 SVG 目录 | 质量检查、手工编辑、重导出和 `update_spec.py` 都面向作者源 |
-| `svg_final/` 是派生产物 | 它可以从 `svg_output/` 重建，不应成为 native 导出的事实源 |
-| native PPTX 默认读取 `svg_output/` | 转换器要在 finalize 重写前保留图标、`preserveAspectRatio`、圆角矩形和原生图片裁剪语义 |
+| `svg_final/` 是派生产物 | 它必须能从 `svg_output/` 重建，只负责自包含视觉预览，不应成为 native 导出的事实源 |
+| native PPTX 标准导出读取 `svg_output/` | 唯一受支持的可编辑形状路线由项目转换器执行；它要在 finalize 重写前保留图标、`preserveAspectRatio`、圆角矩形和原生图片裁剪语义 |
+| PowerPoint 手工“转换为形状”不属于兼容性契约 | `svg_final/` 可以作为 SVG 图片插入，但转换后的结构与视觉结果不做保证，也不反向约束 SVG 允许能力 |
 | 直接 OOXML 路由不进入 SVG 流水线 | 保留型工作流直接 patch 原生 PPTX parts |
 | 图片事实来自重算元数据 | `analysis/image_analysis.csv` 从实时 `images/` 目录重算；agent 不直接看图片像素 |
 | 原生 PPTX 模板不是 Step 3 模板 | Step 3 只消费可复用模板目录 |
@@ -267,7 +289,7 @@ PPT Master 用的是**单主代理内的角色切换**，不是并行子代理�
 
 **为什么是角色专属 reference 而不是一个超大 prompt。** Strategist 跑的是「跟用户协商」模式（开放式、对话式、可以回退），Executor 跑的是「产出严格 XML」模式（不准即兴、不准漏属性）。把两者塞进同一个 prompt，强迫模型在同一个 turn 里持守相互矛盾的纪律——所有混合模式的 prompt 工程病灶都会出现。按角色拆开，每个角色只加载它需要的、扔掉其他。
 
-**策略师确认阶段是唯一的阻塞 gate。** Strategist 阶段以一个三阶段确认 gate 作为核心阻塞决策点：第一阶段确认方向锚点（画布、受众、改写幅度、交付目的、mode、visual style）；第二阶段基于已确认锚点重新推导并确认设计系统（页数、调色板、字体、图标、公式策略）；第三阶段基于已确认设计系统重新推导并确认图片与执行方式（图片来源、生成图风格、AI 图片路径、生成模式、refine-spec）。最终的 `confirm_ui/result.json` 是权威输入——用户改过的字段必须进入 `design_spec.md` 和 `spec_lock.md`，不能回退到 AI 的原始推荐。
+**策略师确认阶段是唯一的阻塞 gate。** Strategist 阶段以一个三阶段确认 gate 作为核心阻塞决策点：第一阶段确认方向锚点（画布、受众、改写幅度、交付目的、mode、visual style，以及只在 Step 3 加载 Deck/Layout 模板时出现的模板遵循方式）；第二阶段基于已确认锚点重新推导并确认设计系统（页数、调色板、字体、图标、公式策略）；第三阶段基于已确认设计系统重新推导并确认图片与执行方式（图片来源、生成图风格、AI 图片路径、生成模式、refine-spec）。模板遵循默认推荐 `adaptive`：每页仍引用模板架构，但无匹配构图时可在同一 Master 下创建新 Layout；`strict` 则保持所选 Layout 契约不变。最终的 `confirm_ui/result.json` 是权威输入。
 
 **图片分析走重算元数据，不读像素。** 当项目里存在图片时，Strategist 和 Executor 使用 `analyze_images.py` 的输出（`analysis/image_analysis.csv`），而不是直接打开图片文件。这个 CSV 是基于当前 `images/` 目录重算出来的视图，不是持久缓存。每次做图片敏感决策前重跑分析，就是它的防陈旧策略：用户图、抽取图、网络图、AI 图、公式图和切片图最终都会汇入同一张可度量事实表。
 
@@ -318,7 +340,7 @@ Strategist 阶段产出两份看起来冗余但服务不同对象的产物：
 
 **Executor 前必须进入终态。** 需要获取的资源行必须落到 `Generated`、`Sourced` 或 `Needs-Manual`；`Pending` 和 `Failed` 不能漏进 Executor。`Needs-Manual` 可以作为已知占位 / 依赖继续进入 SVG 生成，但 Step 7 会在最终导出前重新检查必需文件是否已经存在。
 
-**开发期外部引用，交付期分叉成两套嵌入策略。** 在 `svg_output/` 里编辑时，图片是外部文件引用——快速迭代、单点替换。两份交付产物随后分叉：`svg_final/` 走 Base64 内联（产出一组自包含 SVG，IDE 预览、浏览器、preview pptx 都能开而不丢位图依赖）；native pptx 反过来把位图复制进 PPTX 的 media 文件夹，用 `<a:srcRect>` 表达裁剪。分叉的理由：在 DrawingML 里塞 Base64 能跑但文件膨胀 3-4 倍；文件引用的位图是 PowerPoint 原生表达方式，配 `<a:srcRect>` 的裁剪也是 DrawingML 的规范写法——任一方向用错工具都要付出可编辑性或文件大小的代价。
+**开发期外部引用，下游分叉成预览与原生导出两套嵌入策略。** 在 `svg_output/` 里编辑时，图片是外部文件引用——快速迭代、单点替换。随后分成两种表达：`svg_final/` 走 Base64 内联，产出一组不依赖外部位图文件的自包含 SVG，供 IDE、浏览器和手工插入为 SVG 图片；native PPTX 则把位图复制进 PPTX 的 media 文件夹，用 `<a:srcRect>` 表达裁剪。分叉的理由是职责不同：前者服务视觉预览，后者服务项目转换器生成的可编辑 DrawingML。`svg_final/` 不作为 PowerPoint 手工“转换为形状”的兼容源。
 
 **AI 图片三维系统：Strategist 阶段就锁定。** 当 deck 包含 AI 生成图片时，Strategist 在前置阶段一次性确定三个正交维度——`rendering`（视觉风格家族：vector-illustration / editorial / 3d-isometric / sketch-notes / ……）、`palette`（deck 的 HEX 在图里**怎么用**：比例 + 角色 + 气质）、`type`（每张图的内部构图：background / hero / framework / comparison / ……）。前两个是 deck 级、写进 `spec_lock.md`；Image_Generator 此后每张图的 prompt 都从同一份锁定的 rendering + palette 加上该图的 type 组装出来，而不是逐图重决风格。没有这层锁定，每张图都会自己风格漂移，整套 deck 读起来就是一摞互不相关的插画。这是 `spec_lock` 字体/色彩抗漂移机制在像素上游的对偶——同一思路，往前推一层。Strategist 在策略师确认阶段会向用户呈现 **≥3 个 `rendering × palette` 候选**，绝不静默地自动锁定单一组合，因为这是一个会牵动全 deck 视觉的选择，唯一权威只有用户的品味。
 
@@ -337,30 +359,32 @@ Strategist 阶段产出两份看起来冗余但服务不同对象的产物：
 
 **为什么组合走 Strategist 资源列表，不只交给 Executor 临场发挥。** `§VIII 图片资源列表` 的 `Layout pattern` 列接受 `#<id> + #<id> ...` 表达式——Primary id 加可选 Modifier id——所以组合在 SVG 生成**之前**就被声明、被 `svg_quality_checker` 审计、并能在 session 重入后存活。把组合责任只压在 Executor 身上，长 deck 上下文压缩时就会丢；把它编码进 spec_lock 旁的资源列表，组合就成为设计契约的一部分。
 
-**为什么真正的硬约束留在上游。** 跨切的技术硬约束（`<clipPath>` 只能用在 `<image>` 上、用 `fill-opacity` 而非 `rgba()`、禁 `<mask>`、alpha 效果的路由表）独家住在 [`shared-standards.md`](../../skills/ppt-master/references/shared-standards.md)。版式词表只用一行指针指向它们，不复述——这样某条约束放开时（比如某个 DrawingML 特性变得可靠），只有一个文件要改，词表里也不会留下一份过期副本继续暗中强制旧规则。
+**为什么真正的硬约束留在上游。** 跨切的 SVG 创作与 PPTX 兼容性例外独家住在 [`shared-standards.md`](../../skills/ppt-master/references/shared-standards.md)。版式词表只指向这份合同，不再复述——这样规则变化时只有一个文件要改，词表里也不会留下一份过期副本继续暗中强制旧规则。
 
 ---
 
-## SVG 约束：禁用特性与条件允许
+## SVG 兼容性边界
 
-PowerPoint 的 DrawingML 是 SVG 表达力的严格子集。Executor 在一份经验生长起来的黑名单（mask、style/class、`@font-face`、foreignObject、symbol+use、textPath、animate*、script/iframe ……）里运行，外加对 `marker-start`/`marker-end` 和仅 `<image>` 上的 `clip-path` 的窄条件允许。权威清单和每条特性的具体约束——包括 `<mask>` 的替代效果路由表（渐变叠加、clipPath、filter shadow、源图烘焙）——住在 [`references/shared-standards.md`](../../skills/ppt-master/references/shared-standards.md)。
+PowerPoint 的 DrawingML 是 SVG 表达力的严格子集。在转换器已实现的词汇内，普通 SVG 默认允许。只有导出拒绝项与需要受限映射的能力才集中枚举在 [`references/shared-standards.md`](../../skills/ppt-master/references/shared-standards.md)；它是接受形式与限制的唯一权威，本架构文档有意不再复述。
+
+**为什么本地复用是编译期复用，不是 PowerPoint 保留对象。** 接受的创作形式由权威合同定义、共享校验器执行。校验通过后，流水线会递归实体化引用子树并重写克隆局部 ID 后再导出；PPTX 回导因此只返回展开后的原语，不重建创作期复用图。
 
 值得在架构层标记的理由：
 
-- **为什么是黑名单，不是白名单。** SVG 是个宽规范；穷举允许特性会随着 Executor 不断发现新的有用构造而要持续维护。黑名单只圈住语义上没有 DrawingML 表达的窄集合，其余隐式可用。
-- **为什么是经验性，不是从规范推导。** 这份清单从真实的 PPT 导出失败长出来，不是读 OOXML 规范读出来的。有几个特性（如 `<mask>`）理论上能在 DrawingML 表达，但跨 PowerPoint 版本不可靠；黑名单反映的是实际能交付的子集。
-- **XML 良构性陷阱。** 两个独立于 DrawingML 的跨切陷阱：排版字符必须用裸 Unicode（`—`、`→`、`©`、NBSP），HTML 命名实体（`&mdash;`）在 SVG 里是非法 XML；XML 保留字符（`& < >`）必须实体转义，否则 `R&D` 直接终止导出。这两个坑出现频率高到值得在架构层 flag 一下。
-- **黑名单在后处理之前执行。** `svg_quality_checker.py` 在 `svg_output/` 上执行；后处理会重写 SVG，会掩盖源级别违规。修复永远是 Executor 重新写——有意没有 auto-fix 模式（见 § 质量门）。
+- **为什么是例外清单，不是允许清单。** SVG 是个宽规范；穷举所有允许能力会随着转换器演进而持续增加维护成本。集中维护例外，才能让已实现的普通构造默认可用。
+- **为什么是经验性，不是从规范推导。** 兼容性边界从真实的 PPT 导出失败长出来，不是读 OOXML 规范推导出来的。有些理论上能表达的效果跨 PowerPoint 版本仍不可靠，因此合同反映的是实际能交付的子集。
+- **XML 良构性仍是前置条件。** SVG 一旦不是合法 XML，尚未进入 DrawingML 兼容性阶段就会失败。接受的创作形式集中在权威合同中，避免架构与提示文档分别维护后发生漂移。
+- **兼容性校验在后处理之前执行。** `svg_quality_checker.py` 在 `svg_output/` 上执行；后处理会重写 SVG，可能掩盖源级别违规。修复永远是 Executor 重新写——有意没有 auto-fix 模式（见 § 质量门）。
 
 ---
 
 ## 质量门
 
-**为什么需要这道检查器。** LLM 生成的 SVG 不是确定性的——禁用特性会在长 deck 中悄悄混入，只在 `svg_to_pptx` 中途崩或 PowerPoint 静默丢元素时才暴露。检查器把「PowerPoint 在第 14 页导出失败」转化为「Executor 在第 14 页用了 `<style>`，重新生成它」，诊断速度提升一个数量级——这正是让长 deck 在经济上可迭代的关键。
+**为什么需要这道检查器。** LLM 生成的 SVG 不是确定性的——兼容性违规会在长 deck 中悄悄混入，只在 `svg_to_pptx` 中途崩或 PowerPoint 静默丢元素时才暴露。检查器把「PowerPoint 在第 14 页导出失败」转化为「第 14 页违反 SVG 兼容性合同」，诊断速度提升一个数量级——这正是让长 deck 在经济上可迭代的关键。
 
 **为什么放在后处理之前，而不是之后。** 后处理会重写 SVG（图标嵌入、图片内联），会掩盖源级别违规。直接读 `svg_output/` 抓的是 Executor 的实际输出，先于任何可能掩盖 bug 的清理动作。
 
-**严重性模型：error 阻塞、warning 不阻塞，且有意没有 auto-fix。** error 要求 Executor 在上下文里重新写出错的页面——一个被禁的 `<style>` 元素不是机械 patch，因为 Executor 用它是有原因的，替代方案（比如改成内联属性）需要带着同样的设计意图重新落地。Auto-fix 会静默丢失这份意图，交付一个更难看的页面。
+**严重性模型：error 阻塞、warning 不阻塞，且有意没有 auto-fix。** error 要求 Executor 在上下文里重新写出错的页面——兼容性违规不一定能机械 patch，因为替代方案必须重新承载同样的设计意图。Auto-fix 会静默丢失这份意图，交付一个更难看的页面。
 
 **为什么图表坐标验证挂在同一道 gate。** 图表页面有几何正确性需求（柱高、饼图扇角、坐标轴刻度位置），这些不是结构问题，SVG 合法性规则也抓不到。最自然的捕捉位置就是已经要求 AI 回看自己输出的那道 gate——把「看一眼你刚生成的东西然后修」的认知上下文打包到一个阶段，比把结构和几何审查分到两轮 review 更高效。
 
@@ -377,35 +401,36 @@ PowerPoint 的 DrawingML 是 SVG 表达力的严格子集。Executor 在一份�
 | 产物 | 服务的工作流 | 为何无可替代 |
 | --- | --- | --- |
 | `svg_output/` | 唯一源、手工编辑入口、`update_spec.py`、`svg_quality_checker.py` | 流水线中唯一**手写**而非派生的目录 |
-| `svg_final/` | IDE 内即时预览（VSCode/Cursor 直接打开 `.svg`）、浏览器单页预览 | `.pptx` 在 IDE 里打不开；`svg_output/` 因图标 / 图片是外部引用，IDE 中渲染不完整 |
+| `svg_final/` | IDE 内即时预览（VSCode/Cursor 直接打开 `.svg`）、浏览器单页预览、手动作为 SVG 图片插入 | `.pptx` 在 IDE 里打不开；`svg_output/` 因图标 / 图片是外部引用，IDE 中渲染不完整。PowerPoint 手工“转换为形状”不在支持范围 |
 | `exports/<name>_<ts>.pptx`（native） | 主交付物——PowerPoint 中以 DrawingML 形状形态可编辑 | 唯一一份用户可在 PowerPoint 中原生改尺寸 / 改色 / 改样式的产物 |
 | `exports/<name>_<ts>_native_charts.pptx`（需 `--native-objects` 显式开启） | 让带 `data-pptx-native` 标记的图表/表格以真·PowerPoint 原生对象交付,而非压平形状 | 带数据、可在 PowerPoint 中直接编辑的图表/表格对象;命名与普通压平形状导出区分开 |
 | `exports/<name>_<ts>_narrated.pptx`（经 `--recorded-narration audio` 生成） | 自动放映与 PowerPoint 视频导出用的旁白版 deck | 逐页嵌入音频并写入自动推进时间;命名与无声导出区分开 |
-| `exports/<name>_<ts>_svg.pptx`（preview，需 `--svg-snapshot` 显式开启） | 跨平台单文件分发、整体多页浏览、邮件附件 | 自包含、多页、PowerPoint / Keynote / WPS / LibreOffice 都能直接打开；`svg_final/` 是文件夹，分发不便。默认关闭——live preview 已经覆盖 dev / 诊断场景的 SVG 视觉参考需求 |
 | `backup/<ts>/svg_output/`（默认流程下始终生成） | 不重跑 LLM 的前提下从冻结 SVG 源重建 pptx、长期存档 | 项目下游被改动后，Executor 原始 SVG 唯一的留存副本 |
 
-### `svg_finalize/` 包有**两种**消费者
+### SVG 预处理器有**两种**消费者
 
-这是读代码时容易忽略的关键事实。同一组 `skills/ppt-master/scripts/svg_finalize/` 下的模块，在两个地方被使用，服务两份不同的产物。
+这是读代码时容易忽略的关键事实。`skills/ppt-master/scripts/svg_finalize/` 下的清理模块和本地引用展开器，会在两个地方被使用，服务两份不同的产物。
 
-**写盘消费者** —— `finalize_svg.py` 每次运行都把 `svg_output/` → `svg_final/` 写到磁盘一次。`svg_final/` 随后供 IDE 预览和 preview pptx 使用。
+**写盘消费者** —— `finalize_svg.py` 每次运行都把 `svg_output/` → `svg_final/` 写到磁盘一次，同时展开项目图标占位符和合规的本地 `<use>` 引用。`svg_final/` 随后供 IDE / 浏览器视觉预览及手工 SVG 图片插入使用。
 
-**内存消费者** —— native pptx 直接读 `svg_output/`（不经磁盘中转），但 DrawingML 无法内联处理两种 SVG 特性，所以转换器在内存中调用 `svg_finalize` 模块：
+**内存消费者** —— native pptx 直接读 `svg_output/`（不经磁盘中转），但 DrawingML 无法内联处理项目图标占位符、保留的 SVG 引用实例和定位文本 run，所以转换器在内存中应用对应预处理器：
 
-| 内存调用点 | 复用的模块 | native pptx 为何需要 |
+| 内存调用点 | 预处理器 | native pptx 为何需要 |
 | --- | --- | --- |
 | `svg_to_pptx/use_expander.py` | `svg_finalize.embed_icons` | DrawingML 不识别 `<use data-icon="...">`；不展开图标会静默丢失 |
+| `svg_to_pptx/use_expander.py` | 静态本地引用展开 | DrawingML 不保留 SVG `<use>` 实例图；合规子树必须实体化并获得实例级独立 ID |
 | `svg_to_pptx/tspan_flattener.py` | `svg_finalize.flatten_tspan` | DrawingML 文本块无法在段落中跳位置；`dy` 堆叠的多行 `<tspan>` 会塌成一行，`x` 锚定的 tspan 会跑到错误的列 |
 
 ### 各模块消费者一览
 
 | 模块 | 写盘消费者 | 内存消费者 | 删除影响 |
 | --- | --- | --- | --- |
-| `embed_icons.py` | `finalize_svg` 的 `embed-icons` 步骤 | `svg_to_pptx/use_expander.py` | native pptx 丢失全部图标 + `svg_final/` 不再自包含 |
+| `embed_icons.py` | `finalize_svg` 的 `embed-icons` 步骤（随后展开本地 use） | `svg_to_pptx/use_expander.py` | native pptx 丢失全部图标 + `svg_final/` 不再自包含 |
+| `svg_to_pptx/use_expander.py`（本地引用） | `finalize_svg` 的 `embed-icons` 步骤 | native 转换器预检 | finalize/native 导出失去实体化合规本地复用的能力 |
 | `flatten_tspan.py` | `finalize_svg` 的 `flatten-text` 步骤 | `svg_to_pptx/tspan_flattener.py` | **native pptx 中 `dy` 堆叠的多行文本塌成一行** |
-| `align_embed_images.py` | `finalize_svg` 的 `align-images` 步骤 | — | `svg_final/` 失去图片嵌入 → IDE 预览 / preview pptx 都没图 |
+| `align_embed_images.py` | `finalize_svg` 的 `align-images` 步骤 | — | `svg_final/` 失去图片嵌入 → IDE / 浏览器预览和手工插入的 SVG 图片缺图 |
 | `crop_images.py` / `embed_images.py` / `fix_image_aspect.py` | 被 `align_embed_images.py` import | — | `align_embed_images` `ImportError`，整条链路 broken |
-| `svg_rect_to_path.py` | `finalize_svg` 的 `fix-rounded` 步骤 | — | 只影响 PowerPoint 内手动「Convert to Shape」时圆角丢失；浏览器 / IDE / PowerPoint 自带的 SVG 渲染器都正常 |
+| `svg_rect_to_path.py` | — | — | 仅保留为历史诊断工具，不属于 `finalize_svg` 或受支持导出流程；不得据此承诺 PowerPoint 手工“转换为形状”兼容性 |
 
 ---
 
@@ -425,7 +450,17 @@ PowerPoint 的 DrawingML 是 SVG 表达力的严格子集。Executor 在一份�
 
 **为什么是逐元素派发而不是整体翻译。** SVG 的层级模型干净地映射到 DrawingML 的 group / shape / picture 类型——不需要一个全局优化器去重新规划幻灯片。每种形状都有自己窄的翻译器，简单到能单独调试和单元测试。一张幻灯片的最终质量等于这些独立局部转换之和；这个性质在整体翻译下脆弱，在元素派发下稳健。
 
-**为什么兼容 fallback 属于 SVG snapshot 路径，而不是 native shapes。** Native PPTX 导出会把受支持的 SVG 元素翻译成 DrawingML 形状，并在 native-shapes 模式下显式关闭 PNG+SVG 兼容模式。PNG fallback 只在 legacy SVG-image 路径（`--svg-snapshot` / `--only legacy`）且本地 renderer 可用时使用，因为那条路径嵌入的是旧版 Office 可能无法显示的 SVG media。因此，旧版兼容是一份可选 snapshot 交付物，不是捆在主 editable native deck 里的兜底层。
+**为什么只有项目转换器产出的 native PPTX。** Native 导出把 `svg_output/` 中受支持的 SVG 元素逐个翻译成 DrawingML 形状；这是唯一受支持的 SVG→PPTX 路线。`svg_final/` 仍由强制后处理生成，但只承担自包含视觉预览和 SVG 图片插入，不会再被封装成另一份 PPTX，也不为 PowerPoint 手工“转换为形状”提供兼容兜底。
+
+**为什么默认 native deck 使用基线母版，而不推断模板。** `svg_to_pptx.py` 默认使用 `--pptx-structure baseline`。它只提升低风险共享结构：严格多数页面完全一致的背景，以及显式标记为 `logo`、`footer`、`header`、`watermark`、`chrome` 或 `page-number` 的共同前置 chrome；没有结构角色的旧 SVG 才回退到精确 id token。提升还要求 OOXML 完全一致、无动画引用且 z-order 安全；少数派页面继续使用隐藏母版图形的 `Cover` 版式。导出后处理优先按根节点 `data-pptx-page-role` 分配 `Cover`、`Agenda`、`Section`、`Closing` 或 `Content`，只有缺少根标记的旧 SVG 才回退到保守文件名判断。它可以把一家族所有页面完全一致的背景与前置 chrome 提升到该 Layout，但不做视觉相似度比较、不猜占位符，实际内容始终留在 Slide。
+
+**为什么可复用版式必须依赖显式 SVG 元数据。** `--pptx-structure template` 是生成型 deck 需要继续作为 PowerPoint 模板复用时的 opt-in 路径。最终 slide SVG 在根节点声明 layout key，只允许根节点的直接子元素标记 master/layout layer，并在应成为版式占位框的 slide-local 原型上附加类型语义。导出器会验证共享 master 与同 key layout 的声明在结构和视觉上完全一致，再生成真实 layout part 与 `p:ph` 引用；所有未标记对象仍保持 slide-local。这是确定性的结构编译，不是根据视觉相似度猜模板。
+
+**为什么可复用模板统一重建显式 SVG 结构。** `pptx_template_import.py` 输出分层的 Master/Layout/Slide 参考和源结构事实；`create-template` 据此重建一个干净 Master 与语义 Layout，并把它们重复标注在可独立预览的完整 SVG 中，不再封装原 PPTX。严格套用保持所选 Layout 契约，自适应使用可在同一 Master 下新建显式 Layout；两者都走确定性的 `template` 导出。`preserve` 只为旧项目保留兼容读取。
+
+**为什么模板 SVG 保持完整却仍能编译成版式。** 每张生成 SVG 都是可独立预览的完整 slide，因此会重复携带继承的 Master/Layout 视觉和可选择的 Slide 内容。`page_layouts` 指定输入参考，`pptx_layouts` 指定输出版式，两者在模板路线中逐页齐全。严格模式保持所选契约；自适应模式可在同一 Master 下锁定新 Layout。导出器移除重复继承层并生成真实 Master/Layout，实际内容仍留在 Slide。
+
+**为什么原生对象重建使用 marker，而不是自动替换对象。** 独立的 `pptx_to_svg.py` 导入器会为受支持的未合并表格和保守 classic-chart cache 输出 SVG fallback，并附加 `data-pptx-native` 元数据；当现有 schema 能表达时，还会保留源表格样式继承、受支持的单元格纯色填充 / 基础文字格式，以及图表标题、图例、坐标轴标题和面积图 / 条形图 / 柱形图 / 折线图的 plot 级数据标签开关。由本 exporter 生成的规范 classic chart 还会回读规范纯色系列 / 切片，以及精确的单段或双段标题元数据。默认导出仍把 fallback 子元素当普通 DrawingML shape 处理；只有 `--native-objects` 才会启用可编辑的 PowerPoint 表格 / 图表。合并单元格、直接边框、非纯色填充、混合富文本等不支持的表格场景继续保留实际渲染的 SVG table。ChartEx、旋转 / 翻转 / 3D / 组合图表、不受支持的数据标签作用域或类型、自定义坐标轴语义、趋势线 / 误差线、不受支持的子类型参数、稀疏或非有限 cache、日期 / 格式化类别轴等不支持的图表场景，则在有 baked preview 时保留预览，否则给出明确占位符。两类对象都会写入 `data-pptx-native-status`；质量检查器和 native-object 导出将其报告为 fallback-only warning。这对 importer/exporter 是重建辅助能力，不能替代 `template-fill-pptx` 或 `native-enhance-pptx` 的保留型路线。
 
 ---
 
@@ -435,7 +470,7 @@ PowerPoint 的 DrawingML 是 SVG 表达力的严格子集。Executor 在一份�
 
 **为什么把入场动画锚在顶层 `<g>` group。** PowerPoint 的动画时序基于形状 ID——每个被动画的对象需要稳定的 shape ID。给单个原语做动画会产出每页 30+ 个分别飞入的原子（动感泛滥），只给整页做动画又损失视觉叙事。顶层 group 是自然粒度：Executor 本来就被强制要求用 `<g id="...">` 标记逻辑内容块，而这些块正是观众读作「一个东西到达」的单位——动画对齐了已有的逻辑结构，而不是另立门户。
 
-**为什么页面装饰自动跳过。** 名为 `background` / `header` / `footer` / `decoration` / `watermark` / `page_number` 的 group 代表静态页面框架，不是内容；让它们飞入会让人出戏（页面本身在每次切换时具象化），几乎不会是用户想要的。按 id token 过滤原则上脆弱，实际上可靠——因为 token 词表很小，命名权又掌握在 Executor 手里。
+**为什么页面装饰自动跳过。** 现有 Layer 与 slide-number Placeholder 语义首先识别静态结构；最小 `background` / `header` / `footer` / `decoration` / `watermark` / `page-number` role 只补其余缺口。让页面框架飞入会让人出戏（页面本身在每次切换时具象化），几乎不会是用户想要的。只有所有显式标记都缺失的旧 SVG 才回退到精确 id token。
 
 **为什么对象级动画用 sidecar，而不是 SVG 属性。** SVG 继续作为静态视觉源。自定义 PPTX 动画属于导出策略，所以对象级覆盖放在可选的 `animations.json`，按 slide stem 和顶层 group id 关联。这样不会把 PowerPoint 专用元数据塞进 SVG，同时仍能在默认全局动画不够用时调整顺序、效果、延迟和时长。
 
@@ -457,6 +492,7 @@ PowerPoint 的 DrawingML 是 SVG 表达力的严格子集。Executor 在一份�
 | 不要用脚本批量生成 Executor SVG 页面 | 跨页设计判断依赖主代理逐页连续创作 |
 | 不要把 `image_analysis.csv` 当持久缓存 | `images/` 是实时工作目录；事实必须按需重算 |
 | 不要让 `svg_final/` 成为 native PPTX 默认输入 | `svg_final/` 为自包含预览而重写，native 转换需要 `svg_output/` 的高保真语义 |
+| 不要把 `svg_final/` 当作可还原形状的交换格式 | 它只保证自包含视觉预览和 SVG 图片插入；PowerPoint 手工“转换为形状”不在支持范围 |
 | 不要默认开启对象级入场动画 | 页面转场是默认；对象 build 是显式导出策略 |
 | 不要把 visual review、旁白、图表校准或动画定制默认塞进每次运行 | 这些工作流触发范围窄，且有额外依赖 |
 | 不要用文件复制替代 `finalize_svg.py` | finalize 会嵌入图标 / 图片、展开特殊文本并准备预览产物 |
