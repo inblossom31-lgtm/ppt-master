@@ -56,6 +56,19 @@ _PLACEHOLDERS = frozenset({
     "footer",
     "slide-number",
 })
+TEMPLATE_PLACEHOLDER_TYPES = {
+    "title": "title",
+    "subtitle": "subTitle",
+    "body": "body",
+    "picture": "pic",
+    "chart": "chart",
+    "table": "tbl",
+    "object": "obj",
+    "media": "media",
+    "date": "dt",
+    "footer": "ftr",
+    "slide-number": "sldNum",
+}
 _TEXT_PLACEHOLDERS = frozenset({
     "title",
     "subtitle",
@@ -81,6 +94,7 @@ _LOCK_PAGE_RE = re.compile(r"^P(\d+)$")
 PPTX_STRUCTURE_MODES = frozenset({"baseline", "template", "preserve", "flat"})
 TEMPLATE_ADHERENCE_MODES = frozenset({"strict", "adaptive"})
 NATIVE_STRUCTURE_SCHEMA = "ppt-master.native-structure.v1"
+OOXML_UINT32_MAX = (1 << 32) - 1
 
 
 class TemplateStructureError(RuntimeError):
@@ -202,6 +216,67 @@ class TemplateSlideSpec:
             for item in self.elements
             if item.layer == "layout" or item.placeholder
         )
+
+
+@dataclass(frozen=True)
+class TemplatePlaceholderBinding:
+    """Resolved PowerPoint identity for one template placeholder."""
+
+    element: TemplateElementSpec
+    placeholder_type: str
+    assigned_idx: int | None
+
+    @property
+    def effective_idx(self) -> int:
+        """Return the OOXML idx value after applying its default of zero."""
+        return self.assigned_idx if self.assigned_idx is not None else 0
+
+
+def template_placeholder_bindings(
+    spec: TemplateSlideSpec,
+) -> tuple[TemplatePlaceholderBinding, ...]:
+    """Assign deterministic, collision-free PowerPoint placeholder identities."""
+    next_idx = 1
+    used_indices: dict[int, str] = {}
+    bindings: list[TemplatePlaceholderBinding] = []
+    for item in spec.placeholders:
+        placeholder_type = TEMPLATE_PLACEHOLDER_TYPES.get(item.placeholder or "")
+        if placeholder_type is None:
+            raise TemplateStructureError(
+                f"{spec.svg_path.name}: unsupported placeholder type "
+                f"{item.placeholder!r}"
+            )
+        if item.placeholder == "title" and item.placeholder_idx is None:
+            assigned_idx = None
+        else:
+            assigned_idx = (
+                item.placeholder_idx
+                if item.placeholder_idx is not None
+                else next_idx
+            )
+        effective_idx = assigned_idx if assigned_idx is not None else 0
+        if effective_idx > OOXML_UINT32_MAX:
+            raise TemplateStructureError(
+                f"{spec.svg_path.name}: layout {spec.layout_key!r} placeholder "
+                f"{item.element_id!r} idx exceeds the OOXML UInt32 maximum "
+                f"{OOXML_UINT32_MAX}"
+            )
+        previous = used_indices.get(effective_idx)
+        if previous is not None:
+            raise TemplateStructureError(
+                f"{spec.svg_path.name}: layout {spec.layout_key!r} gives "
+                f"placeholders {previous!r} and {item.element_id!r} the same "
+                f"effective idx {effective_idx}; omitted idx defaults to 0 in OOXML"
+            )
+        used_indices[effective_idx] = item.element_id
+        if assigned_idx is not None:
+            next_idx = max(next_idx, assigned_idx + 1)
+        bindings.append(TemplatePlaceholderBinding(
+            element=item,
+            placeholder_type=placeholder_type,
+            assigned_idx=assigned_idx,
+        ))
+    return tuple(bindings)
 
 
 def _local_tag(elem: ET.Element) -> str:
@@ -329,7 +404,14 @@ def load_pptx_structure_lock(project_path: Path) -> PptxStructureLock | None:
 
     structure_rows = sections.get("pptx_structure", [])
     layout_rows = sections.get("pptx_layouts", [])
-    if not structure_rows and not layout_rows:
+    structure_section_present = "pptx_structure" in sections
+    layout_section_present = "pptx_layouts" in sections
+    if (
+        not structure_rows
+        and not layout_rows
+        and not structure_section_present
+        and not layout_section_present
+    ):
         return None
     mode_rows = [value.strip().lower() for key, value in structure_rows if key == "mode"]
     if len(mode_rows) != 1:
@@ -434,10 +516,22 @@ def load_pptx_structure_lock(project_path: Path) -> PptxStructureLock | None:
         raise TemplateStructureError(
             f"spec_lock.md {mode} mode requires one pptx_layouts row per page"
         )
-    if mode not in {"template", "preserve"} and references:
+    if mode == "baseline" and layout_section_present and not references:
         raise TemplateStructureError(
-            "spec_lock.md pptx_layouts is allowed only when pptx_structure.mode "
-            "is template or preserve"
+            "spec_lock.md baseline pptx_layouts section must contain one row per "
+            "page; omit the whole section only for a legacy baseline project"
+        )
+    if mode == "baseline" and any(
+        reference.layout_name is None for reference in references
+    ):
+        raise TemplateStructureError(
+            "spec_lock.md baseline pptx_layouts rows require "
+            "'<layout_key> | <PowerPoint layout name>'"
+        )
+    if mode == "flat" and layout_section_present:
+        raise TemplateStructureError(
+            "spec_lock.md pptx_layouts section is not allowed when "
+            "pptx_structure.mode is flat"
         )
     return PptxStructureLock(
         mode=mode,
@@ -661,7 +755,13 @@ def _parse_placeholder_idx(
             f"{svg_path.name}: {element_id} data-pptx-placeholder-idx must be "
             "a non-negative integer"
         )
-    return int(value)
+    parsed = int(value)
+    if parsed > OOXML_UINT32_MAX:
+        raise TemplateStructureError(
+            f"{svg_path.name}: {element_id} data-pptx-placeholder-idx must be "
+            f"at most {OOXML_UINT32_MAX}"
+        )
+    return parsed
 
 
 def _validate_placeholder_element(
@@ -945,6 +1045,7 @@ def parse_template_slides(svg_files: list[Path]) -> list[TemplateSlideSpec]:
         by_layout.setdefault(spec.layout_key, []).append(spec)
     for layout_key, layout_specs in by_layout.items():
         prototype = layout_specs[0]
+        template_placeholder_bindings(prototype)
         for spec in layout_specs[1:]:
             if spec.layout_name != prototype.layout_name:
                 raise TemplateStructureError(
@@ -957,6 +1058,72 @@ def parse_template_slides(svg_files: list[Path]) -> list[TemplateSlideSpec]:
                     f"from prototype {prototype.svg_path.name}; repeat the same layout "
                     "layers and placeholder ids/types in the same order"
                 )
+    return specs
+
+
+def parse_optional_layout_slides(
+    svg_files: list[Path],
+) -> list[TemplateSlideSpec] | None:
+    """Parse an all-or-none explicit Layout contract, or return legacy absence."""
+    roots: list[tuple[Path, ET.Element]] = []
+    has_structure_metadata = False
+    for svg_path in svg_files:
+        try:
+            root = ET.parse(svg_path).getroot()
+        except (OSError, ET.ParseError) as exc:
+            raise TemplateStructureError(
+                f"{svg_path.name}: unable to inspect SVG Layout metadata: {exc}"
+            ) from exc
+        roots.append((svg_path, root))
+        has_structure_metadata = has_structure_metadata or any(
+            elem.get(attr) is not None
+            for elem in root.iter()
+            for attr in _STRUCTURE_ATTRS
+        )
+
+    if not has_structure_metadata:
+        return None
+
+    missing_keys = [
+        svg_path.name
+        for svg_path, root in roots
+        if not (root.get("data-pptx-layout") or "").strip()
+    ]
+    missing_names = [
+        svg_path.name
+        for svg_path, root in roots
+        if not (root.get("data-pptx-layout-name") or "").strip()
+    ]
+    if missing_keys or missing_names:
+        missing_fields: list[str] = []
+        if missing_keys:
+            missing_fields.append(
+                "data-pptx-layout: " + ", ".join(missing_keys)
+            )
+        if missing_names:
+            missing_fields.append(
+                "data-pptx-layout-name: " + ", ".join(missing_names)
+            )
+        raise TemplateStructureError(
+            "Explicit Layout metadata is all-or-none: once any SVG uses PPTX "
+            "structure metadata, every generated page root must declare "
+            "data-pptx-layout and data-pptx-layout-name with non-empty values; "
+            "missing "
+            + "; ".join(missing_fields)
+        )
+    specs = parse_template_slides(svg_files)
+    empty_layouts = sorted({
+        spec.layout_key
+        for spec in specs
+        if not spec.layout_elements and not spec.placeholders
+    })
+    if empty_layouts:
+        raise TemplateStructureError(
+            "Explicit baseline Layout contracts must define at least one "
+            "data-pptx-layer='layout' element or data-pptx-placeholder per "
+            "layout key; empty: "
+            + ", ".join(empty_layouts)
+        )
     return specs
 
 
@@ -976,7 +1143,7 @@ def template_lock_errors(
     structure_lock: PptxStructureLock,
 ) -> list[str]:
     """Return mismatches between parsed SVG layouts and the project lock."""
-    if structure_lock.mode not in {"template", "preserve"}:
+    if structure_lock.mode not in {"baseline", "template", "preserve"}:
         return []
     errors: list[str] = []
     references = {
@@ -1135,10 +1302,69 @@ def native_structure_lock_errors(
     return errors
 
 
+def _placement_lint_errors(svg_path: Path) -> list[str]:
+    """Enumerate every placement/paint-order violation in one pass.
+
+    ``parse_template_slide`` fails fast on the first error, which discloses
+    violations one whole fix-cycle at a time. The quality checker runs this
+    pre-lint first so a single run reports every offender of the two
+    highest-frequency classes: structure metadata below the root, and
+    template paint-order violations.
+    """
+    try:
+        root = ET.parse(svg_path).getroot()
+    except (OSError, ET.ParseError):
+        return []
+    if _local_tag(root) != "svg":
+        return []
+    errors: list[str] = []
+    direct_children = set(root)
+    for elem in root.iter():
+        if elem is root or elem in direct_children:
+            continue
+        if any(elem.get(attr) is not None for attr in _STRUCTURE_ATTRS):
+            element_id = elem.get("id") or _local_tag(elem) or "<unnamed>"
+            errors.append(
+                f"{svg_path.name}: {element_id} uses template metadata below the SVG "
+                "root; structure metadata is allowed only on direct children"
+            )
+    canvas = _svg_canvas(root)
+    last_order_rank = -1
+    for elem in root:
+        tag = _local_tag(elem)
+        if tag in _NON_VISUAL_TAGS:
+            continue
+        layer = (elem.get("data-pptx-layer") or "").strip().lower() or None
+        if layer not in _LAYERS:
+            layer = None
+        is_background = _is_full_canvas_solid_rect(elem, canvas)
+        effective_layer = layer or ("slide" if is_background else None)
+        if is_background and effective_layer is not None:
+            order_rank = {"master": 0, "layout": 1, "slide": 2}[effective_layer]
+        elif effective_layer == "master":
+            order_rank = 3
+        elif effective_layer == "layout":
+            order_rank = 4
+        else:
+            order_rank = 5
+        if order_rank < last_order_rank:
+            errors.append(
+                f"{svg_path.name}: {elem.get('id') or tag} violates template paint "
+                "order; use Master background, Layout background, Slide background, "
+                "Master shapes, Layout shapes, then Slide content/placeholders"
+            )
+            continue
+        last_order_rank = order_rank
+    return errors
+
+
 def validate_template_svg(svg_path: Path) -> list[str]:
     """Return per-file template metadata errors for quality-check integration."""
+    errors = _placement_lint_errors(svg_path)
     try:
         parse_template_slide(svg_path, 1)
     except TemplateStructureError as exc:
-        return [str(exc)]
-    return []
+        message = str(exc)
+        if message not in errors:
+            errors.append(message)
+    return errors

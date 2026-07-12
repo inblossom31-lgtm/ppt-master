@@ -75,6 +75,8 @@
 >
 > **Size slots are anchors, not a closed menu.** Common slots (`title` / `subtitle` / `annotation`) cover frequent cases. Add role-specific slots (e.g. `cover_title: 88`, `hero_number: 56`, `subheading: 32`, `lead: 30`, `footnote: 16`, `chart_annotation: 16`) for the roles the deck actually uses — common for cover-heavy decks, consulting-style hero numbers, dense pages. **Mandatory — scan `§IX` and declare a slot for every role that recurs across pages, not just the four defaults.** A report / `text`-mode deck almost always recurs a per-page **core-message / lead line** and **page numbers / source credits / footnotes** → declare `lead` and `footnote` for them. `subheading` and `lead` sit between `subtitle` and `body` (their bands overlap `subtitle`) — pick by role, not size — and the core-message `lead` is a **primary** line, **always ≥ `body`**, never smaller. Leaving a recurring lead / footnote undeclared forces the Executor to improvise an unlocked size (and a core line improvised below `body` inverts the hierarchy). **Structural roles (title / body / subtitle / annotation / footnote) render at their locked size on every page — one role, one size, deck-wide.** Intermediate in-band sizes are for special / feature elements only (hero number, display title, one-off emphasis); declare a recurring one as its own slot so it stays consistent too.
 >
+> **Template Master defaults**: `pptx_structure.mode: template` requires both unitless `title` and `body`. Native export writes `title` into every Master `titleStyle` default and `body` into every `bodyStyle` / `otherStyle` default, changing only `a:defRPr@sz`. Direct page-run sizes and role-specific Layout placeholder prototype sizes remain unchanged. Other structure modes do not rewrite Master text-style sizes.
+>
 > **⚠️ PPT-safe stack discipline (HARD rule).** Native `baseline` / `template` export maps `title_family` to the PowerPoint theme major font and `body_family` (or `font_family`) to the theme minor font. Runs whose resolved face matches either role use `+mj-*` / `+mn-*` theme tokens; other role families remain concrete per-run typefaces. Every exported Latin / EA face MUST therefore resolve to cross-platform pre-installed fonts: `"Microsoft YaHei"` / `SimSun` / `Arial` / `"Times New Roman"` / `Consolas`. Stacks that resolve to non-preinstalled typefaces (Inter / Google Fonts / brand typefaces) may be used only when the Design Spec notes the font-install or embedding requirement. `preserve` keeps the source template theme; `flat` keeps concrete fonts for diagnostics.
 >
 > **Stack length discipline.** 3-4 fonts per stack is the sweet spot. Converter only writes the **first** Latin and **first** CJK font into PPTX — everything after is silently dropped. macOS-only families (`Songti SC`, `Menlo`, `Monaco`, `Helvetica`) are auto-mapped to Windows equivalents via `FONT_FALLBACK_WIN` (see `scripts/svg_to_pptx/drawingml/utils.py`); stacking both is redundant. Lead with Windows-preinstalled fonts (`Microsoft YaHei` / `SimSun` / `Arial` / `Georgia` / `Consolas`); keep at most **one** macOS-exclusive family (typically `"PingFang SC"`) as a browser-preview nicety.
@@ -134,7 +136,7 @@
 > ```
 > Omit the row for free design and brand-only templates. Both values require one `page_layouts` and one `pptx_layouts` row per page. `strict` keeps the selected Layout contract; `adaptive` may create a new explicit Layout under the same template Master.
 >
-> - `baseline` — default for free design and brand-only routes. Preserve conservative shared Master/background/chrome behavior, then assign Cover/Agenda/Section/Closing/Content from root `data-pptx-page-role`. It may also promote exact family-wide leading structurally marked chrome into a Layout. Marker-free legacy SVGs retain filename/id fallback. Actual content stays slide-local; no placeholders or visual-similarity inference are authored.
+> - `baseline` — default for free design and brand-only routes. New projects pair this mode with a complete `pptx_layouts` section and explicit root Layout/layer/placeholder metadata while remaining `baseline`; no deck/layout template or `page_layouts` section is implied. A legacy baseline lock whose entire `pptx_layouts` section is absent retains root `data-pptx-page-role`, conservative shared chrome promotion, and filename/id compatibility fallback. Actual content stays Slide-local in both paths.
 > - `template` — required whenever Step 3 loaded a deck/layout template. Requires complete `page_layouts` and `pptx_layouts` sections plus explicit SVG structure metadata on every generated page.
 > - `preserve` — legacy strict-only compatibility for an existing project that already ships `native_structure.json` + `source_template.pptx`. Do not select it for newly created templates.
 > - `flat` — diagnostic escape hatch. Do not lock this in a normal project; pass it on the CLI when comparing slide-local output.
@@ -149,17 +151,18 @@
 
 ## pptx_layouts
 
-> Emit this section only when `pptx_structure.mode` is `template` or legacy `preserve`. Include exactly one row per generated page. Value format: `<layout_key> | <PowerPoint layout name>`. Strict template use copies the selected SVG key/name; adaptive use may declare a new stable key/name. Preserve uses the legacy native contract.
+> Emit this section for every new generated deck, including free-design and brand-only decks that remain `pptx_structure.mode: baseline`. Include exactly one row per generated page. Value format: `<layout_key> | <PowerPoint layout name>`. Baseline keys/names describe the authored output composition, strict template use copies the selected SVG key/name, adaptive template use may declare a new stable key/name, and preserve uses the legacy native contract. Only a legacy baseline project may omit the whole section and fall back to `data-pptx-page-role`.
 >
 > Example:
 > ```
-> - P01: cover | Cover
-> - P02: title-content | Title and Content
-> - P03: title-content | Title and Content
-> - P04: section | Section Header
+> - P01: cover-hero-split | Cover — Hero Split
+> - P02: kpi-band-trio | KPI Band Trio
+> - P03: section-divider | Section Divider
+> - P04: timeline-spine | Timeline Spine
+> - P05: section-divider | Section Divider
 > ```
 >
-> Reuse one key only when pages share the same static layout layer and placeholder contract. Do not generate one unique key per slide merely because every page has different content. A one-off cover/section layout is valid; content differences stay slide-local.
+> **One key per distinct composition — chrome, zone framing, and placeholder contract.** Series pages repeating one composition (e.g., three directional timetable pages) share one key; a genuinely different composition gets its own key, and its distinguishing zone framing (table backing panel, column panels, hero frame) is authored at the Layout layer so different keys compile to genuinely different Layouts. Name keys after the composition (`timeline-spine`, `section-divider`), never after PowerPoint stock roles or page topics: role keys (`title-content`) collapse different compositions into one mismatched Layout, and topic keys (`timetable-yungui` / `timetable-guangxi`) split one composition into duplicate Layouts. Do not split a shared key merely because slide-local wording, data, or imagery differs. Choose keys from the authored page plan, never from visual clustering, filenames, or content similarity. Zone labels, data, and complex grouped compositions stay Slide-local; do not move concrete content into the Layout to manufacture reuse.
 
 ## page_layouts
 - P01: 01_cover
@@ -172,7 +175,7 @@
 >
 > **Hard rule**: Use both `page_layouts` and `page_charts` only with a compatible shell. Adaptive mode may start from a neutral content template and create a new explicit Layout; strict mode must choose an existing compatible Layout or revise the outline.
 >
-> **Whole section omitted** → free design or brand-only route.
+> **Whole section omitted** → free design or brand-only route. This omission applies only to `page_layouts`; every new route still emits complete `pptx_layouts` output mappings.
 >
 > **Strategist source**: copy the per-page SVG choices from `design_spec.md §VI Page Roster` (or §IX outline if Roster is absent). Names must match files in `templates/` exactly — typos cause silent fallback to free design.
 
