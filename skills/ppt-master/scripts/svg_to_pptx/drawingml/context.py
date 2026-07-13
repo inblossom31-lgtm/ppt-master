@@ -21,7 +21,6 @@ class ShapeResult:
 
     xml: str
     bounds_emu: tuple[int, int, int, int] | None = None
-    trace_metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
