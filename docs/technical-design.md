@@ -294,9 +294,10 @@ All current Brand/Layout/Deck packages use one workspace routing contract. Brand
 
 ```text
 <template_workspace>/
-├── templates/   # design_spec.md, SVG prototypes, templates/icons/ when used
+├── templates/   # design_spec.md and SVG prototypes
 ├── images/      # optional; bitmap assets referenced as ../images/<name>
-├── icons/       # optional; runtime copy of extracted vector assets
+├── icons/
+│   └── imported/ # optional; canonical imported vector assets
 └── exports/     # optional, on-demand review files; Git-ignored in the library
 ```
 
@@ -490,7 +491,7 @@ Not every PPTX-related request should regenerate slides. PPT Master now has dire
 
 `template_fill_pptx.py` is a thin CLI wrapper over `scripts/template_fill_pptx/`. Its analyzer extracts a slide library with text slots, tables, charts, and geometry; the fill plan selects source slides, confirms replacements, then the applier clones slides and patches XML parts directly. This route deliberately avoids SVG: a user who supplies a PowerPoint template usually wants those native slide masters, placeholders, tables, and charts to remain PowerPoint-native.
 
-`native_enhance_pptx.py` is the stable entry point for finished-deck enhancement. It delegates to the native narration/timing implementation and patches the PPTX package in place from a project copy: notes, page transitions, recorded narration media, slide timings, and related metadata. The contract is preservation: existing content, layout, and formatting are not regenerated.
+`native_enhance_pptx.py` is the stable entry point for finished-deck enhancement. It delegates to `native_enhance_pptx_core.py` and patches the PPTX package in place from a project copy: notes, page transitions, recorded narration media, slide timings, and related metadata. The retired `native_narration_pptx.py` name remains only as a thin CLI compatibility shim. The contract is preservation: existing content, layout, and formatting are not regenerated.
 
 These direct routes share some analysis primitives with the main pipeline, especially PPTX intake, but they do not share the SVG authoring or post-processing stages. That separation is intentional: SVG generation is a design synthesis path; direct OOXML editing is a preservation path.
 
@@ -502,7 +503,7 @@ These direct routes share some analysis primitives with the main pipeline, espec
 
 **Why per-element dispatch, not whole-file translation.** SVG's hierarchical model maps cleanly onto DrawingML's group / shape / picture types — there's no need for a holistic optimizer that re-plans the slide. Each shape kind gets its own narrow translator, which keeps each translator simple enough to debug and unit-test in isolation. The output quality of a slide is the sum of independent local conversions; that property is fragile under whole-file translation but robust under element dispatch.
 
-**Why imported and authored shape metadata are separate.** A lossless imported SVG may need native-shape metadata, hidden carriers, and preview fingerprints to recover an advanced PowerPoint shape. That representation stays in the temporary analysis workspace. `svg_authoring_view.py` creates a lightweight inspection projection without opaque payload or duplicate hidden carriers; the projection is never an export source. `standard` / `fidelity` author project-canonical SVG and use the compact authored-preset group only for exact registered preset matches. Mirror materializes from the lossless source and may reuse converter-supported metadata on unchanged Slide-local/slot objects; fixed structural layers remain direct atoms, and unsupported or edited objects keep their current SVG fallback.
+**Why imported and authored shape metadata are separate.** A lossless imported SVG may need native-shape metadata, hidden carriers, and preview fingerprints to recover an advanced PowerPoint shape. That representation stays immutable in the temporary analysis workspace as native-payload backing. `svg_authoring_view.py` creates the editable template-creation IR: lightweight SVGs with document-local source refs plus an `authoring_manifest.json` containing paths and initial hashes, not duplicated payload. `standard` / `fidelity` author project-canonical SVG and use the compact authored-preset group only for exact registered preset matches. Mirror materializes validated templates from the IR and rehydrates converter-supported metadata only for unchanged Slide-local/slot refs; fixed structural layers remain direct atoms, unsupported or edited objects keep their current SVG fallback, and IR-only refs do not enter final template SVGs.
 
 **Why there is only one PPTX compiler route.** Native export reads authored SVGs and translates supported SVG elements into DrawingML shapes. The normal deck path reads `svg_output/`; when requested, create-template invokes the same structured compiler on validated template prototypes to produce `exports/<id>_template_preview.pptx` as review evidence. The project does not package whole-slide SVG media or alternate raster renderings into a second PPTX. `svg_final/` is still generated on every standard deck run, but it is a self-contained visual-preview artifact rather than a PPTX source; users may insert it as an SVG picture, while PowerPoint's manual Convert to Shape command remains outside the supported contract.
 
