@@ -8,7 +8,7 @@ Usage:
     python3 scripts/project_manager.py scaffold-lock <project_path>
     python3 scripts/project_manager.py validate <project_path>
     python3 scripts/project_manager.py info <project_path>
-    python3 scripts/project_manager.py page-context <project_path> P07 [--bundle] [--record-usage]
+    python3 scripts/project_manager.py page-context <project_path> P07 [--record-usage]
     python3 scripts/project_manager.py page-context-report <project_path>
 """
 
@@ -645,12 +645,14 @@ class ProjectManager:
         }
 
         expanded_items: list[str] = []
+        supplied_dirs: list[Path] = []
         for item in source_items:
             if is_url(item):
                 expanded_items.append(item)
                 continue
             item_path = Path(item)
             if item_path.is_dir():
+                supplied_dirs.append(item_path)
                 directory_files = sorted(
                     path for path in item_path.iterdir() if path.is_file()
                 )
@@ -857,6 +859,22 @@ class ProjectManager:
             else:
                 summary["notes"].append(f"{item}: archived only, no automatic conversion")
 
+        # Cleanup: a supplied source directory that ends up empty (moved out or
+        # empty from the start) is removed so no husk is left behind. Only under
+        # move semantics — explicit --copy, or default copy outside the repo,
+        # must not delete a user directory.
+        for directory in supplied_dirs:
+            if copy or not (move or is_within_path(directory, REPO_ROOT)):
+                continue
+            if directory.is_dir() and not any(directory.iterdir()):
+                try:
+                    directory.rmdir()
+                except OSError:
+                    continue
+                summary["notes"].append(
+                    f"{directory}: removed empty source directory after import"
+                )
+
         return summary
 
     def validate_project(self, project_path: str) -> tuple[bool, list[str], list[str]]:
@@ -913,7 +931,7 @@ def build_parser() -> argparse.ArgumentParser:
   python3 scripts/project_manager.py scaffold-lock projects/demo_ppt169_20260718
   python3 scripts/project_manager.py validate projects/demo
   python3 scripts/project_manager.py info projects/demo
-  python3 scripts/project_manager.py page-context projects/demo P07 --bundle --record-usage
+  python3 scripts/project_manager.py page-context projects/demo P07 --record-usage
   python3 scripts/project_manager.py page-context-report projects/demo
 """,
     )
@@ -961,7 +979,7 @@ def build_parser() -> argparse.ArgumentParser:
     page_context.add_argument(
         "--bundle",
         action="store_true",
-        help="Include the selected min sidecar and complete prototype SVG",
+        help="Deprecated compatibility flag; output remains compact",
     )
     page_context.add_argument(
         "--pretty",
@@ -971,7 +989,7 @@ def build_parser() -> argparse.ArgumentParser:
     page_context.add_argument(
         "--record-usage",
         action="store_true",
-        help="With --bundle, write token telemetry under analysis/page-context/",
+        help="Write compact-output token telemetry under analysis/page-context/",
     )
 
     page_context_report = subparsers.add_parser(
@@ -1089,8 +1107,6 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "page-context":
-            if args.record_usage and not args.bundle:
-                parser.error("page-context --record-usage requires --bundle")
             result = build_page_context(args.project_path, args.page)
             output, measured_reads = render_page_context(
                 result,
