@@ -27,7 +27,7 @@ PPT Master is an AI-driven presentation generation system. Multi-role collaborat
 ## Required Conventions
 
 - **Repo-wide style rules** — when editing prompt files under [`skills/ppt-master/references/`](skills/ppt-master/references/), Python under [`skills/ppt-master/scripts/`](skills/ppt-master/scripts/), or any other code/prose in the repo, follow the matching style rule in [`docs/rules/`](docs/rules/).
-- **Prompt decision ownership** — follow [`docs/rules/prompt-style.md`](docs/rules/prompt-style.md) §4.1: Strategist readies every selected resource; Executor uses only that inventory and owns realization. Never move acquisition or reselection downstream.
+- **Prompt decision ownership** — follow [`docs/rules/prompt-style.md`](docs/rules/prompt-style.md) §4.1: Strategist readies project-local resources; Executor realizes the plan from that prepared pool. For icons, every SVG under `<project>/icons/` is prepared execution material, while `icons.inventory` records the Strategist's planned bundled selection rather than an execution whitelist. Never move acquisition or reselection downstream.
 - **Markdown language consistency** — Markdown files under `skills/ppt-master/workflows/`, `skills/ppt-master/references/`, and `docs/` are currently single-language per directory. New files mirror the language of their siblings; do not mix English scaffolding with Chinese paragraphs (or vice versa) inside one file. Chat replies are unaffected.
 
 ## Compatibility Boundary
@@ -46,7 +46,7 @@ python3 skills/ppt-master/scripts/source_to_md.py <file_or_URL_or_dir> [<file_or
 
 # Project management
 python3 skills/ppt-master/scripts/project_manager.py init <project_name> --format ppt169
-python3 skills/ppt-master/scripts/project_manager.py import-sources <project_path> <source_files_or_dirs_or_URLs...> --move
+python3 skills/ppt-master/scripts/project_manager.py import-sources <project_path> <source_files_or_dirs_or_URLs...>
 python3 skills/ppt-master/scripts/project_manager.py scaffold-spec <project_path>  # optional manual helper
 python3 skills/ppt-master/scripts/project_manager.py scaffold-lock <project_path>  # optional manual helper
 python3 skills/ppt-master/scripts/project_manager.py validate <project_path>

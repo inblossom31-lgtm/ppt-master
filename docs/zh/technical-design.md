@@ -263,7 +263,7 @@ SVG 也是唯一同时满足流程中所有角色需要的格式：**AI 能可�
 | `exports/` | 带时间戳的 native PPTX 交付物 |
 | `backup/<timestamp>/` | 默认导出时写入的冻结 `svg_output/` 快照 |
 
-CLI 仍支持三种导入模式：`--move`、`--copy`，以及“仓库内文件 move、仓库外文件 copy”的自动默认。[`workflows/generate-pptx.md`](../../skills/ppt-master/workflows/generate-pptx.md) 中的 Generate PPTX 生产工作流会刻意收紧这一点：agent 必须调用 `import-sources ... --move`，让所有源文件和中间产物进入 `sources/`，保持工作根目录干净。脚本级默认服务临时 CLI 使用的安全性；工作流级契约更严格，是为了让 AI 执行具备可复现和可审计性。
+CLI 支持 `--move`、`--copy` 和自动默认，但共享同一条固定的所有权边界：只有仓库 `projects/` 目录下的源文件可以 move 到目标项目的 `sources/`；其他本地路径一律 copy 并保留原文件，即使显式传入 `--move` 也不例外。`--copy` 用于要求保留的 projects-local 输入。Generate PPTX 使用自动模式，因此仓库正式文档和外部用户文件不会在导入时被移除。
 
 ---
 
@@ -379,7 +379,7 @@ Strategist 阶段产出两份看起来冗余但服务不同对象的产物：
 
 这份 lock 同时也是逐页路由表。除了全局配色和字体，它还承载 `page_rhythm`（`anchor` / `dense` / `breathing`）、`page_charts`（某页应适配哪个图表模板）、带放置/裁剪契约的图片行，以及决定加载哪些执行规则文件的 `mode` / `visual_style`。选定 custom 方向时，lock 还承载已消解的 `mode_behavior` / `visual_style_behavior`；当它确实综合或借鉴已有目录项时，再用可选的 `mode_references` / `visual_style_references` / `image_rendering_references` 记录全部精确 id，执行阶段会先读取每个对应文件再综合。真正全新的 custom 不写参考字段。page-context 会把这些字段投影给 Executor，而不是只留下字面上的 `custom` id。`template_reuse_scope: mirror|layout` 项目额外承载 `page_layouts`（每页继承哪个输入模板 SVG）、唯一的 `pptx_masters` / `pptx_layouts` 定义，以及 `page_pptx_layouts` 页面分配；`template_reuse_scope: style`、自由设计和 brand-only 项目使用 `pptx_structure.mode: flat`，那些段整段省略，而不是写成空值。其余字段的空值本身仍是信号：没有图表、没有图片，很多时候是设计选择，而不是漏填。
 
-`page-context v2` 把有界的连续性状态与大型引用分开。它有意在每页重复紧凑的全局锚点集，并用 `lock_source.sha256` 绑定版本；这个集合不是颜色/字体白名单。当前 §IX brief、节奏、图片选择和模板/图表分配构成逐页 delta。项目/模板 Design Spec、选中的原型，以及 `templates/charts/<key>.svg` 只以带 scope 的路径/SHA 指纹出现。只有该指纹不在当前执行上下文中或 SHA 已变化时，Executor 才读取文件一次；后续页面直接复用已有理解。flat 页面没有原型引用；structured 页面引用权威的完整 SVG。manifest 与 text-slot sidecar 只保留为派生工具诊断，不注入页面创作上下文。
+`page-context v2` 把有界的连续性状态与大型引用分开。它有意在每页重复紧凑的全局锚点集，并用 `lock_source.sha256` 绑定版本；这个集合不是颜色/字体白名单。当前 §IX brief、节奏、图片选择和模板/图表分配构成逐页 delta。项目/模板 Design Spec、选中的原型，以及 `templates/charts/<key>.svg` 只以带 scope 的路径/SHA 指纹出现。只有该指纹不在当前执行上下文中或 SHA 已变化时，Executor 才读取文件一次；后续页面直接复用已有理解。项目 Design Spec 的指纹还会声明 `same_context_edit_policy: targeted-readback-and-rebind`：当前主代理基于已保留内容做有界精确回修，且页清单、叙事顺序、确认身份与沟通契约均未改变时，只回读修改片段、执行校验并重建 page-context，然后把既有整体理解和已验证 delta 绑定到新 SHA，无需重新加载整份文档。fresh、外部、来源不明、结构性或投影不符的修改仍必须完整读取一次。flat 页面没有原型引用；structured 页面引用权威的完整 SVG。manifest 与 text-slot sidecar 只保留为派生工具诊断，不注入页面创作上下文。
 
 `--record-usage` 在 `analysis/page-context/` 下写入当前页的派生快照，记录输入 hash 和紧凑 stdout 的实测大小。token 计数按需加载 `o200k_base`；没有安装 `tiktoken` 时写入 `tokens: null`，但不阻塞执行。`page-context-report` 排除过期快照，汇总紧凑 page-context，并列出唯一引用指纹；一次加载的大型引用 payload 与其他会话上下文有意不纳入统计。
 
@@ -397,11 +397,11 @@ Strategist 阶段产出两份看起来冗余但服务不同对象的产物：
 |---|---|---|
 | 顾客与初始食材 | 用户确认与用户提供的原材料/素材 | 决定事实、意图、排除项、材料补充许可，以及要求具体到什么程度 |
 | 菜单策划与备料负责人 | Strategist、`design_spec.md`、`spec_lock.md` 及其负责的材料获取阶段 | 判断材料是否充分；补齐获准补充的事实；选定内容、资源、页面清单、图表/版式 key、字体、色板锚点、图标和裁剪边界；在执行前备齐项目级材料清单 |
-| 厨师 | Executor | 只使用已备材料，以几何、构图、层级、间距和视觉处理实现方案；不得改变所选“菜品”，也不得自行找料、换料 |
+| 厨师 | Executor | 只使用项目中已备好的材料，以几何、构图、层级、间距和视觉处理实现方案；不得改变所选“菜品”，也不得自行找料、换料 |
 
 **备料有两个时点。** Topic Research 在最终确认前补充规划所需的事实：只有主题时立即运行；已有材料时先转换 / 阅读，仅在仍有关键事实缺口时补齐，而且不获取任何图片。AI / web / slice 图片只能在最终确认以及完整的 `design_spec.md §VIII` / `spec_lock.md` 之后获取，并在 Executor 开始前进入终态。Strategist 还会在编写最终方案时解析、同步并验证图标 inventory。Image_Generator、Image_Searcher 与图标同步工具只是 Strategist 负责的备料机制，不是独立决策者。
 
-**已备材料清单就是边界。** 只有被 Strategist 选定、写入规划产物，并且项目路径可解析或已明确标为 `Needs-Manual` 的资源，才对 Executor 可用。文件仅仅存在于其他目录并不构成使用许可。缺料必须返回上游；Executor 不得搜索、生成、下载、同步或替换资源。
+**项目中已备好的材料就是边界。** 图片和其他声明型资源，仍须由 Strategist 选定、写入规划产物，并保证项目路径可解析或明确标为 `Needs-Manual`。图标 SVG 只要已位于 `<project>/icons/` 就属于已备材料；`spec_lock.icons.inventory` 记录 Strategist 计划选用的内置图标，但不是穷尽式执行白名单。其他目录中的文件不构成使用许可。缺料必须返回上游；Executor 不得搜索、生成、下载、同步或替换资源。
 
 **具体程度决定自由度。** “做麻婆豆腐”锁定成品身份：火候、口感和摆盘可以发挥，但不能换成番茄炒蛋或豆腐汤。“做一道豆腐菜”则保留了品类内选择空间。Strategist 可以把这个开放要求收敛成具体方案；如果 Design Spec 有意保留某个维度的开放性，Executor 可以在该范围内实现。一旦 Design Spec 已经选定具体结果，执行阶段不得重新打开选择。
 
@@ -576,7 +576,7 @@ PowerPoint 的 DrawingML 是 SVG 表达力的严格子集，因此主编译路�
 
 **为什么模板 SVG 保持完整却仍能编译成原生结构。** 模板 SVG 会重复携带继承的 Master/Layout 视觉和示例 Slide 内容，因此可独立打开。生成时由 `page_layouts` 选择该原型，输出 SVG 仍保持视觉闭包。导出器移除重复继承原子、生成真实 Master/Layout part，并把槽位 carrier 与 Slide-local 内容留在 Slide。
 
-**为什么 PowerPoint 原生 Chart/Table 重建使用显式替换 marker，而不是自动替换对象。** 独立的 `pptx_to_svg.py` 导入器只为已验证的表格 / 图表子集输出可见 SVG fallback、`data-pptx-replace-with` 与 `<metadata type="application/json">`。生成型 deck 只在 Strategist 将 §VII 行标为 `Native-ready: yes` 时准备这组内容；catalog marker 只是能力示例，不替项目做决策。父组 marker 决定 payload schema；普通 shape 与 connector 不使用该合同。表格导入覆盖精确的物理行列 topology、slave 为空的规范矩形 merge、安全的 solid/no-fill 逐边 border、纯文本多段落，以及封闭的 run 级富文本段落。富文本段落包含非空 `runs`；每个 run 必须有 `text`，并且只能使用 `bold`、`italic`、`underline`、`strike`、`color`、`font_size`、单一 `font_family`、`lang` 和 `alt_lang`。不含非空 `effectLst` / `effectDag` 的来源展示型 run XML 会归一化到该 schema；表格单元格 run 效果则会禁用原生替换，并添加阻塞效果诊断。带 relationship 的文本、扩展节点、换行、字段、tab、项目符号、破损文本 topology、非规范 merge、不安全 border 与非纯色填充仍保持 fallback-only。表格样式 `{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}` 的规范化 fallback 会解析 `wholeTbl`、`firstRow`、横向带状行、主题颜色 / 字体和直接格式覆盖；这不代表完整 built-in/custom style registry。
+**为什么 PowerPoint 原生 Chart/Table 重建使用显式替换 marker，而不是自动替换对象。** 独立的 `pptx_to_svg.py` 导入器只为已验证的表格 / 图表子集输出可见 SVG fallback、`data-pptx-replace-with` 与 `<metadata type="application/json">`。生成型 deck 只在 Strategist 将 §IX 页面块标为 `Native-ready: yes` 时准备这组内容；§VII 只保存正向 catalog reference，catalog marker 只是能力示例，不替项目做决策。父组 marker 决定 payload schema；普通 shape 与 connector 不使用该合同。表格导入覆盖精确的物理行列 topology、slave 为空的规范矩形 merge、安全的 solid/no-fill 逐边 border、纯文本多段落，以及封闭的 run 级富文本段落。富文本段落包含非空 `runs`；每个 run 必须有 `text`，并且只能使用 `bold`、`italic`、`underline`、`strike`、`color`、`font_size`、单一 `font_family`、`lang` 和 `alt_lang`。不含非空 `effectLst` / `effectDag` 的来源展示型 run XML 会归一化到该 schema；表格单元格 run 效果则会禁用原生替换，并添加阻塞效果诊断。带 relationship 的文本、扩展节点、换行、字段、tab、项目符号、破损文本 topology、非规范 merge、不安全 border 与非纯色填充仍保持 fallback-only。表格样式 `{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}` 的规范化 fallback 会解析 `wholeTbl`、`firstRow`、横向带状行、主题颜色 / 字体和直接格式覆盖；这不代表完整 built-in/custom style registry。
 
 受支持的柱 / 条 / 折线 / 面积、饼 / 圆环、散点 / 气泡图在没有 baked preview 时会生成确定性、可读的 SVG fallback，并标记 `data-pptx-fallback-kind="normalized"`。导入器还覆盖已验证的柱 / 折线 / 面积组合图、规范四系列 OHLC stock、数值日期轴面积图、采用封闭 `axes.x` / `axes.y` 合同的散点 / 气泡图、radar、安全的 `of_pie` `serLines`、坐标轴 / 标题 / 图例归一化，以及有界的柱 / 条图 gap/overlap 场景。`gapWidth` 只接受 `0..500` 内的单个整数，`overlap` 只接受 `-100..100` 内的单个整数；这两个表现字段在 native 输出中有意归一化，非法、重复或越界输入 fail closed。组合图可保留主 / 次 plot 各自的 category cache 与 workbook range。XY 导入根据各系列一致的有效 line/marker/smooth 状态推导 `scatter_style`。封闭的 category/value 与 XY 轴合同为 native read-back 保留 kind、position、visibility、label position、number format、min/max/major unit、reverse 和 major gridlines；规范化 XY fallback 只消费两个 `major_gridlines` 开关。
 
