@@ -6,14 +6,26 @@ description: Generate PPTX route authority for source intake, planning, SVG auth
 
 > Load only after [`routing.md`](./routing.md) selects Generate PPTX. This file owns the route's Step 1–7 sequence, gates, role switching, and mandatory commands.
 
-**Core Pipeline**: `Initial Materials → [Fact Research] → Create Project → [Template] → Strategist Structured Plan → [Image Acquisition] → Executor Live Preview → Quality Check → Post-processing → Export`
+**Default Core Pipeline**: `Initial Materials → [Fact Research] → Create Project → [Template] → Strategist Structured Plan → [Image Acquisition] → Executor Live Preview → Quality Check → Post-processing → Export`
 
 **Generate-specific execution discipline**:
 
 - The current main agent hand-writes every SVG page; never delegate page generation or run a Python, Node, or shell generator over `svg_output/`.
 - Initial SVG cadence: P01 → first-page gate → uninterrupted remaining pages → final gate. Grouped batches and mid-run checker calls are forbidden.
-- `preset_shape_svg.py` may provide one stdout fragment only after the main agent chooses its semantic role, frame, and paint; it cannot choose layout or write a page.
+- `preset_shape_svg.py` and `shape_boolean_svg.py` may provide only their documented stdout fragment(s) after the main agent chooses the object's role, operands, paint, and z-order; neither helper chooses layout or writes a page.
 - Gate checklists are internal verification, not user-facing output. On success, continue automatically and emit at most one compact status line when useful; on failure, report only the blocking items and required recovery.
+
+### Quick Test Profile Short Circuit
+
+When the user explicitly requests quick/fast mode for a disposable test with a
+small fixed roster of self-contained slides, load and follow
+[`quick-test.md`](./profiles/quick-test.md). That profile owns the complete
+test-only sequence and skips this route's Steps 1–7.
+
+**Hard rule — no implicit downgrade**: page count alone never selects quick
+test. Normal delivery, source conversion, factual research, template use,
+external assets, native data objects, notes, animation, narration, and reusable
+output remain on the default pipeline below.
 
 ### SVG Page-Design Boundary
 
@@ -22,7 +34,7 @@ description: Generate PPTX route authority for source intake, planning, SVG auth
 | Any route that authors or regenerates slide visuals through SVG | `svg_output/` is the complete page-design source: every visible text, image, shape, chart/table fallback, and layout element that should appear on the exported slide is present in that page SVG or referenced by it. |
 | Templates, `design_spec.md`, and `spec_lock.md` | Authoring/control inputs. They guide SVG creation but MUST NOT supply visible slide content that is absent from the completed SVG during export. |
 | Semantic SVG markers | Minimal rendering-neutral compiler hints used only after existing Layout/Layer/Placeholder/Native metadata has been considered. They never replace native SVG geometry, text, styles, grouping, or asset references. |
-| `svg_final/` | Mandatory derived, self-contained SVG visual preview. It may be opened directly or inserted into PowerPoint as an SVG picture, but it is not a supported PPTX source and carries no manual Convert-to-Shape compatibility contract. |
+| `svg_final/` | Mandatory derived, self-contained SVG visual preview in the default pipeline. It may be opened directly or inserted into PowerPoint as an SVG picture, but it is not a supported PPTX source and carries no manual Convert-to-Shape compatibility contract. Quick-test skips it. |
 | SVG-to-PPTX export | The only supported generated-PPTX route reads `svg_output/` and maps its content through the project converter to DrawingML/native objects. It compiles only the selected route's explicit structure contract: `flat` keeps represented content Slide-local, while `structured` may place explicitly scoped content in Master/Layout/Slide parts. It MUST NOT infer structure, upgrade `flat`, or invent new visible page content. |
 | Native PPTX routes and presentation-behavior stages | Remain outside SVG page-design closure. `template-fill-pptx`, `native-enhance-pptx`, animations, transitions, speaker notes, narration, and package relationships are not required to round-trip through SVG. |
 
@@ -146,7 +158,7 @@ Bare names, style descriptions, brand mentions, vague template intent, and silen
 
 ---
 
-### Step 4: Strategist Phase (MANDATORY — cannot be skipped)
+### Step 4: Strategist Phase (MANDATORY in the default pipeline)
 
 🚧 **GATE**: Step 3 complete; default free-design path taken, or (if triggered) template files copied or confirmed in place in the project.
 
@@ -216,7 +228,7 @@ If the user opted out of the page but did not delegate confirmation, skip launch
 
 With `refine_spec: true`, run [`refine-spec`](stages/refine-spec.md) after Gate 1: review that same file in chat, accept arbitrary revisions, touch no lock, and stop until explicit approval. Revisions supersede only affected decisions. Otherwise skip the stop.
 
-After the review closes, author `spec_lock.md` from the approved Design Spec and context. Preserve identity/refinements, every recurring typography role, reusable routing anchors, and each placed image's source/pattern/crop policy; omit page-local garnish and never write a separate image palette. Apply `strategist-template.md` §3 when active. Unhonorable requirements follow [`failure-recovery.md`](governance/failure-recovery.md).
+After the review closes, author `spec_lock.md` from the approved Design Spec and context. Preserve identity/refinements, every recurring typography role, reusable routing anchors, and each placed image's source/preferred-pattern reference/crop policy; omit page-local garnish and never write a separate image palette. Apply `strategist-template.md` §3 when active. Unhonorable requirements follow [`failure-recovery.md`](governance/failure-recovery.md).
 
 **Conditional — split-mode note** (not a separate confirmation): after listing the Strategist confirmation stage details, append one short line (rendered in the user's language, prefixed with 💡) only when the confirmed mode is `split` or upstream-load signals make a fresh execution context materially useful. Judge those signals from recommended page count, source-material bulk, and substantial `topic-research` web-fetch accumulation:
 
@@ -345,7 +357,7 @@ Read references/visual-styles/<resolved-id>.md    # one preset id, or each `visu
 | `spec_lock.md images` or §VIII contains at least one image/formula row, or an active template carries bundled images | `executor-image.md` + `image-layout-patterns.md` + `image-layout-spec.md` + `svg-image-embedding.md` |
 | At least one placed image has `Status: Sourced` | `executor-web-image.md` after the image branch |
 | The locked style/current page calls for noncanonical or alpha paint, dash/cap/join, tracking/decoration/outline, gradient/filter/glow/shadow, path/transform/clipping, or another constructed effect | `svg-effects.md` before authoring that value or effect |
-| A page calls for a literal PowerPoint stock shape | `native-shape-authoring.md` before selecting or emitting that shape |
+| §IX contains `Native shape suggestion`, or current page construction calls for a literal PowerPoint stock shape, a stock Connector contour, an explicit Merge Shapes operation or result, or a shape-built dimensional form (cylinder/pedestal, layered diagram, reflection, ground plane), or Executor is about to hand-author a freeform not already required by data geometry or the locked organic / hand-drawn style | `native-shape-authoring.md` before selecting or materializing that geometry. This trigger is image-independent: a text-only, data-only, or icon-only page reaches it the same way |
 | All SVG pages and SVG quality gates are complete | `executor-notes.md` before generating speaker notes |
 
 No branch is loaded by analogy. Evaluate these triggers from `spec_lock.md`, §VII/§VIII, the selected style, and the current page plan.
@@ -374,7 +386,9 @@ python3 ${SKILL_DIR}/scripts/svg_editor/server.py <project_path> --live --daemon
 
 **Visual Construction Phase**: generate SVG pages sequentially, one at a time, in one continuous pass → `<project_path>/svg_output/`
 
-Each completed SVG MUST be a standalone, complete representation of that slide's visible design. Template SVGs and locked planning artifacts may guide construction, but export must not reach back to them to add visible objects omitted from `svg_output/`. Speaker notes, animation, narration, transitions, and direct native-PPTX workflows remain separately owned artifacts/capabilities. When a page actually needs a literal stock shape, load and apply [`native-shape-authoring.md`](../references/native-shape-authoring.md) before drawing it. Diagram relationships remain Shape-first; do not infer a preset from contour similarity.
+Each completed SVG MUST be a standalone, complete representation of that slide's visible design. Template SVGs and locked planning artifacts may guide construction, but export must not reach back to them to add visible objects omitted from `svg_output/`. Speaker notes, animation, narration, transitions, and direct native-PPTX workflows remain separately owned artifacts/capabilities. Treat §IX `Native shape suggestion` as a candidate, not a command: inspect the actual page construction, then choose the highest-level faithful construction in this order — editable basic primitive, exact Office preset, Merge Shapes Boolean result, and only then a necessary freeform. Load and apply [`native-shape-authoring.md`](../references/native-shape-authoring.md) before materializing an adopted native treatment. Diagram relationships follow the same Shape-first order; do not infer a preset from contour similarity.
+
+**Motion-ready image composition**: When an adopted §IX `Motion suggestion` or explicit user requirement depends on distinct in-slide image states or cross-slide image continuity, author those visible states now under [`executor-image.md`](../references/executor-image.md). Give each independently revealable or continuing ordinary Slide-local unit a descriptive direct-root `<g id>`; structured atoms/slots retain their declared boundaries and are targetable only when that contract permits. Do not defer required visible content or reshape structure for the later stage. This is SVG preparation, not early animation authoring: effects, pairing, order, and timing remain in the conditional custom stage after notes. A page-transition-only suggestion requires no extra visible layer; deterministic Morph still needs the continuing object as a direct-root group on both pages.
 
 `template_reuse_scope: mirror|layout` pages MUST start from the complete `page_layouts` SVG, keep inherited visible objects, and preserve root Master/Layout identity plus stable atoms/slots. Strict preserves that reusable contract; under `layout`, the once-loaded Design Spec's `Template Application` may still authorize carrier text/tspan reflow inside unchanged slot bounds. Adaptive uses the current or new Layout key/name already declared by Strategist. If construction proves that fixed atoms or slot topology/bounds must change, stop and return upstream for Strategist to repair the owning plan and lock, validate and read back the affected fragments, then resume; Executor never mutates `spec_lock.md`. `mirror` changes only visible text values while preserving text/tspan topology and attributes. `style` follows the flat paragraph below without structure metadata.
 
@@ -425,6 +439,21 @@ python3 ${SKILL_DIR}/scripts/svg_quality_checker.py <project_path> --stage final
 
 > **Visual self-check (opt-in)?** If the user explicitly asked for a per-page visual re-pass on the SVGs ("跑一下视觉自检 / 视觉回看", "visual review", "check pages visually", etc.), run the [`visual-review`](stages/visual-review.md) quality-gate stage before Step 7. Do NOT run it by default and do NOT recommend it based on inferred model capability or deck size — trigger is user request only.
 
+> **Motion execution (conditional)?** Visible-layer preparation belongs to the
+> main SVG pass above. After `notes/total.md` exists, inspect §IX
+> `Motion suggestion` rows, explicit user motion requirements, and an existing
+> `<project_path>/animations.json`. With none of the three, keep the exporter
+> defaults (`fade` page transition, per-element animation `none`) and load no
+> motion reference. An existing sidecar always runs
+> [`customize-animations`](stages/customize-animations.md) to validate and
+> resolve preserve/adjust/replace intent before export. With no sidecar, a
+> deck-wide request loads [`animations.md`](../references/animations.md) and
+> resolves Step 7.3 flags; any `Motion suggestion` or per-slide/per-object
+> request runs the custom stage. Strategist owns the communication purpose;
+> Executor owns exact native effects, options, order, timing, and whether a
+> non-literal suggestion should simplify to `none`. Never add motion for
+> coverage or variation.
+
 ---
 
 ### Step 7: Post-processing & Export
@@ -458,6 +487,15 @@ python3 ${SKILL_DIR}/scripts/finalize_svg.py <project_path>
 ```bash
 python3 ${SKILL_DIR}/scripts/svg_to_pptx.py <project_path>
 ```
+
+For deck-wide motion settings, append the resolved flags from
+[`animations.md`](../references/animations.md). When the conditional custom
+stage preserves or produces `<project_path>/animations.json`, keep the base command above:
+the exporter reads the sidecar automatically. Explicit motion flags override
+the corresponding sidecar default/slide fields, while group overrides remain
+unless `-a none` hard-disables all object motion; do not mix deck-wide flags
+with a custom sidecar in the normal workflow. With no adopted motion input or
+existing sidecar, preserve the normal `fade` / `none` defaults.
 
 **Success criterion**: The command exits successfully and produces:
 
