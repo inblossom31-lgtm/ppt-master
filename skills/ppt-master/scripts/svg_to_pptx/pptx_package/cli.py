@@ -45,7 +45,7 @@ if __package__ in {None, ''}:
     __package__ = 'svg_to_pptx'
 
 from .dimensions import CANVAS_FORMATS, get_project_info
-from .discovery import find_svg_files, find_notes_files
+from .discovery import NotesFileReadError, find_notes_files, find_svg_files
 from .builder import create_pptx_with_native_svg
 from ..native_objects import (
     native_fallback_kind,
@@ -59,6 +59,7 @@ from ..drawingml.theme_fonts import (
     load_master_text_style_spec,
     load_theme_font_spec,
 )
+from ..drawingml.utils import unsafe_exported_font_faces
 from .narration import NARRATION_EXTENSIONS, find_narration_files, probe_audio_duration
 from .template_structure import (
     TemplateStructureError,
@@ -211,11 +212,21 @@ def _source_resource_audit(svg_files: list[Path]) -> dict[str, object]:
         for stack in font_stacks
         if _font_stack_is_generic_only(stack)
     })
+    unsafe_font_faces = [
+        {
+            'stack': stack,
+            'role': role,
+            'typeface': typeface,
+        }
+        for stack in sorted(font_stacks)
+        for role, typeface in unsafe_exported_font_faces(stack).items()
+    ]
     return {
         'unresolved_template_tokens': placeholders,
         'fonts': {
             'stacks': sorted(font_stacks),
             'generic_only_stacks': generic_only_font_stacks,
+            'unsafe_exported_faces': unsafe_font_faces,
         },
         'images': {
             **image_counts,
@@ -298,6 +309,7 @@ def _postflight_warning_summaries(
     unresolved_token_count: int,
     external_image_count: int,
     generic_font_stack_count: int,
+    unsafe_font_face_count: int,
 ) -> tuple[str, ...]:
     """Return stable warning summaries for the terminal receipt."""
     warnings: list[str] = []
@@ -311,6 +323,8 @@ def _postflight_warning_summaries(
         warnings.append(f'external_images={external_image_count}')
     if generic_font_stack_count:
         warnings.append(f'generic_only_font_stacks={generic_font_stack_count}')
+    if unsafe_font_face_count:
+        warnings.append(f'unsafe_exported_font_faces={unsafe_font_face_count}')
     return tuple(warnings)
 
 
@@ -370,12 +384,14 @@ def _write_postflight_report(
     unresolved_tokens = source_audit['unresolved_template_tokens']
     external_image_count = source_audit['images']['external']
     generic_only_font_stacks = source_audit['fonts']['generic_only_stacks']
+    unsafe_font_faces = source_audit['fonts']['unsafe_exported_faces']
     if quality_gate == 'failed':
         report_status = 'failed'
     elif (
         not unresolved_tokens
         and not external_image_count
         and not generic_only_font_stacks
+        and not unsafe_font_faces
         and not introduced_warning_count
         and quality_gate == 'passed'
     ):
@@ -420,7 +436,9 @@ def _write_postflight_report(
                 'passed' if not external_image_count else 'warning'
             ),
             'font_portability': (
-                'passed' if not generic_only_font_stacks else 'warning'
+                'passed'
+                if not generic_only_font_stacks and not unsafe_font_faces
+                else 'warning'
             ),
         },
         'quality': quality,
@@ -443,6 +461,7 @@ def _write_postflight_report(
         unresolved_token_count=len(unresolved_tokens),
         external_image_count=external_image_count,
         generic_font_stack_count=len(generic_only_font_stacks),
+        unsafe_font_face_count=len(unsafe_font_faces),
     )
     return _PostflightReceipt(
         output_path=output_path,
@@ -673,6 +692,24 @@ def _recorded_narration_on_click_slides(
     return blocked
 
 
+def _resolve_animation_config_source(
+    project_path: Path,
+    requested_config: str | None,
+    *,
+    recorded_narration: bool,
+    no_animations: bool,
+) -> str | None:
+    """Resolve the animation sidecar selected for this export."""
+    if requested_config is not None or not recorded_narration or no_animations:
+        return requested_config
+
+    canonical_exists = (project_path / 'animations.json').is_file()
+    narration_exists = (project_path / 'narration_animations.json').is_file()
+    if canonical_exists or narration_exists:
+        return 'narration_animations.json'
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point for the SVG to PPTX conversion tool."""
     transition_choices = [
@@ -743,7 +780,9 @@ Recorded narration:
     - Keeps speaker notes when enabled
     - Prepares PowerPoint recorded timings and narrations
     - Requires one m4a/mp3/wav file per slide
-    - Uses narration_animations.json by default
+    - Uses narration_animations.json when animation sidecars exist
+    - With no animation sidecars, keeps the default fade transition and no
+      per-element builds
     - Use --animation-config animations.json for the canonical animation
     - Use --no-animations for narration and timings without animation motion
     - Embeds per-slide audio matched by SVG filename / slide number
@@ -836,17 +875,23 @@ Recorded narration:
         ),
     )
     parser.add_argument('--no-image-optimize', action='store_true',
-                        help='Disable native PPTX raster image optimization; embeds original image bytes.')
+                        help='Disable native PPTX raster image optimization and always embed '
+                             'the original image bytes.')
     parser.add_argument('--image-max-dimension', type=int, default=2560,
-                        help='Maximum optimized raster image dimension in pixels (default: 2560).')
+                        help='Preferred raster cap in pixels. Cap mode re-encodes only images '
+                             'that require resizing or EXIF geometry normalization, and may '
+                             'retain more pixels for cropped/stretched visible resolution '
+                             '(default: 2560).')
     parser.add_argument('--image-sizing', choices=['cap', 'display'], default='cap',
-                        help='Raster sizing mode: cap only limits source dimensions; '
-                             'display sizes from the SVG rendered box (default: cap).')
+                        help='Raster sizing mode: cap preserves original bytes unless resizing '
+                             'or EXIF geometry normalization is required; display targets the '
+                             'SVG rendered box for explicit compaction (default: cap).')
     parser.add_argument('--image-scale', type=float, default=2.0,
                         help='Target optimized image pixels per SVG display pixel '
                              'when --image-sizing=display (default: 2.0).')
     parser.add_argument('--image-quality', type=int, default=85,
-                        help='JPEG quality for optimized opaque raster images, 1-100 (default: 85).')
+                        help='JPEG quality for raster images re-encoded during optimization, '
+                             '1-100 (default: 85).')
 
     def non_negative_float(value: str) -> float:
         try:
@@ -904,9 +949,10 @@ Recorded narration:
         type=str,
         default=None,
         help=(
-            'Per-slide/per-object animation config. Recorded narration defaults '
-            'to <project>/narration_animations.json; other exports default to '
-            '<project>/animations.json when present.'
+            'Per-slide/per-object animation config. Recorded narration uses '
+            '<project>/narration_animations.json when an animation sidecar exists, '
+            'or keeps exporter defaults when neither sidecar exists. Other exports '
+            'default to <project>/animations.json when present.'
         ),
     )
     animation_source.add_argument(
@@ -941,6 +987,12 @@ Recorded narration:
             '--native-charts-and-tables.',
             file=sys.stderr,
         )
+    if args.animation_config is not None and not args.animation_config.strip():
+        print(
+            'Error: --animation-config must be a non-empty file path',
+            file=sys.stderr,
+        )
+        return 1
 
     if args.quick_test:
         conflicts: list[str] = []
@@ -1106,10 +1158,22 @@ Recorded narration:
     # Native DrawingML is the only PPTX product. ``-s`` remains an explicit
     # diagnostic source override; standard export always reads svg_output/.
     native_source = args.source or 'output'
-    native_files, native_source_dir = find_svg_files(project_path, native_source)
+    native_files, native_source_dir = find_svg_files(
+        project_path,
+        native_source,
+        allow_fallback=args.source is None,
+    )
     ref_files = native_files
     if not native_files:
-        print("Error: No SVG files found")
+        if args.source is not None:
+            requested_dir = project_path / native_source_dir
+            print(
+                "Error: No SVG files found in explicitly requested source: "
+                f"{requested_dir}",
+                file=sys.stderr,
+            )
+        else:
+            print("Error: No SVG files found", file=sys.stderr)
         return 1
 
     # Compatibility kwargs remain until the builder's old baseline-specific
@@ -1237,7 +1301,11 @@ Recorded narration:
     enable_notes = not args.no_notes
     notes: dict[str, str] = {}
     if enable_notes:
-        notes = find_notes_files(project_path, ref_files)
+        try:
+            notes = find_notes_files(project_path, ref_files)
+        except NotesFileReadError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
 
     narration_audio: dict[str, Path] = {}
     narration_audio_dir_arg = args.recorded_narration or args.narration_audio_dir
@@ -1312,13 +1380,12 @@ Recorded narration:
         )
         return 1
 
-    effective_animation_config = args.animation_config
-    if (
-        effective_animation_config is None
-        and args.recorded_narration
-        and not args.no_animations
-    ):
-        effective_animation_config = 'narration_animations.json'
+    effective_animation_config = _resolve_animation_config_source(
+        project_path,
+        args.animation_config,
+        recorded_narration=bool(args.recorded_narration),
+        no_animations=args.no_animations,
+    )
 
     if effective_animation_config:
         config_path = Path(effective_animation_config)
@@ -1366,7 +1433,11 @@ Recorded narration:
 
     config_warnings: list[str] = []
     if animation_config:
-        reference_messages = validate_animation_config(project_path, animation_config)
+        reference_messages = validate_animation_config(
+            project_path,
+            animation_config,
+            svg_files=native_files,
+        )
         config_warnings = [
             message for message in reference_messages
             if ' has no id and cannot be customized in animations.json' in message

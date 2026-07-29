@@ -22,10 +22,11 @@ Defined in the Design Specification & Content Outline; each image carries an `Ac
 | Status | Meaning | Executor Handling |
 |--------|---------|-------------------|
 | **Pending** | Acquisition needed (`Acquire Via: ai` / `web`) or derivation needed (`Acquire Via: slice`); not yet attempted | Image Acquisition Phase (Step 5) consumes this; must not remain after Step 5 |
+| **Failed** | The latest automatic acquisition attempt failed; this is retryable and non-terminal | Step 5 reruns the owning manifest or explicitly resolves the row to `Needs-Manual`; Executor must never treat `Failed` as usable content |
 | **Generated** | AI-generated file exists at expected path, or sliced element file exists at expected path | Reference from `../images/`; no on-slide credit needed. **Exception**: an `Illustration Sheet` row is only a slice source — it lives in §VIII but never in `spec_lock.md images`, so the Executor never places it |
-| **Sourced** | Web-sourced file exists at expected path | Reference from `../images/`; check `image_sources.json` for `license_tier` — if `attribution-required`, render an inline credit element on the slide (see [`executor-web-image.md`](./executor-web-image.md) §1 and [`image-searcher.md`](./image-searcher.md) §7 for the visual spec) |
-| **Rendered** | Deterministic formula PNG exists at expected path (`Acquire Via: formula`) | Reference from `../images/`; use `preserveAspectRatio="xMidYMid meet"` and do not crop |
-| **Needs-Manual** | Acquisition attempted once + one retry, failed; for `slice`, parent sheet is unavailable | Dashed placeholder unless user has manually supplied the file. For `slice` rows, place the parent sheet and rerun `slice_images.py`; do not hand-place individual element files |
+| **Sourced** | Web-sourced file exists at expected path | Reference from `../images/`; check `image_sources.json` for `license_tier` — if `attribution-required`, render an inline credit element on the slide (see [`executor-web-image.md`](./executor-web-image.md) §1 and [`image-searcher.md`](./image-searcher.md) §7 for the attribution contract) |
+| **Rendered** | Deterministic formula PNG exists at expected path (`Acquire Via: formula`) | Reference from `../images/`; use a legal anchor with `meet` for the complete placement (centered default: `xMidYMid meet`) and do not crop |
+| **Needs-Manual** | Automatic acquisition is unavailable/exhausted or the confirmed path requires manual fulfillment; for `slice`, the parent sheet is unavailable | Dashed placeholder unless the user has supplied the expected file. For `slice` rows, supply the parent sheet and rerun `slice_images.py`; do not hand-place individual element files |
 | **Existing** | User already has image (`Acquire Via: user`) | Place in `images/`, reference with `<image>` |
 | **Placeholder** | Intentionally not prepared yet (`Acquire Via: placeholder`) | Dashed border placeholder; replace later |
 
@@ -36,8 +37,8 @@ Defined in the Design Specification & Content Outline; each image carries an `Ac
 ```
 1. Strategist defines image needs → Add image resource list with Acquire Via + Status per row
 2. Image Acquisition (Step 5):
-   - Pending + ai  → Image_Generator runs image_gen.py     → Generated
-   - Pending + web → Image_Searcher runs image_search.py   → Sourced
+   - Pending / Failed + ai  → Image_Generator runs image_gen.py     → Generated
+   - Pending / Failed + web → Image_Searcher runs image_search.py   → Sourced
    - Pending + slice → after parent AI sheet is Generated, slice_images.py cuts element files → Generated
    - formula / user / placeholder rows are skipped
 3. Executor generates SVGs (svg_output/)
@@ -148,14 +149,15 @@ aliases only when invoked through `finalize_svg.py --only`.
 
 ## Best Practices
 
-### Image Optimization
+### Native PPTX Image Export
 
-Compress before embedding to reduce file size:
+**Default — preserve unmodified image bytes**: `svg_to_pptx.py` uses `--image-sizing cap`. It keeps original bytes when an image needs neither resizing nor EXIF geometry normalization, and re-encodes only images that require one of those transformations. Use the explicit compact command only when a compact export is requested.
 
-```bash
-convert input.png -quality 85 -resize 1920x1080\> output.png  # ImageMagick
-pngquant --quality=65-80 input.png -o output.png               # pngquant (recommended)
-```
+| Need | Command |
+|---|---|
+| Normal native export | `python3 scripts/svg_to_pptx.py <project_path>` |
+| Explicit compact export | `python3 scripts/svg_to_pptx.py <project_path> --image-sizing display --image-scale 2 --image-quality 85` |
+| Force original bytes | `python3 scripts/svg_to_pptx.py <project_path> --no-image-optimize` |
 
 ### File Organization
 

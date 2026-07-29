@@ -21,7 +21,6 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
 from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape
 
@@ -50,8 +49,17 @@ from pptx_animations import (
     validate_generated_animation_xml,
     validate_pptx_animation_package,
 )
+from pptx_opc_validation import (
+    canonical_opc_part_path as _canonical_opc_part_path,
+    resolve_internal_opc_target as _resolve_internal_opc_target,
+    verify_internal_relationships,
+)
 
-from ..animation_config import MorphPair, resolve_morph_pairs
+from ..animation_config import (
+    MorphPair,
+    resolve_morph_pairs,
+    resolve_slide_animation_config,
+)
 from ..drawingml.converter import convert_svg_to_slide_shapes
 from ..drawingml.theme_colors import (
     ThemeColorSpec,
@@ -4040,8 +4048,10 @@ def _slide_animation_settings(
     if not isinstance(anim_value, dict):
         raise ValueError('animations.json slide animation must be an object')
     anim_cfg = anim_value
-    resolved_cfg = dict(default_animation_cfg)
-    resolved_cfg.update(anim_cfg)
+    resolved_cfg = resolve_slide_animation_config(
+        default_animation_cfg,
+        anim_cfg,
+    )
     if cli_overrides.get('animation'):
         effect, effect_options = normalize_animation_effect_request(
             animation,
@@ -4411,133 +4421,6 @@ def _prerender_legacy_pngs(
     return results
 
 
-_OPC_UNRESERVED = frozenset(
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
-)
-_ASCII_LOWER_TRANSLATION = str.maketrans(
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    "abcdefghijklmnopqrstuvwxyz",
-)
-
-
-def _canonical_opc_part_path(path: str) -> str | None:
-    """Return an OPC-equivalent package path key, or None when invalid."""
-    if (
-        not path
-        or "\\" in path
-        or path.endswith("/")
-        or "//" in path
-        or any(ord(char) <= 0x20 for char in path)
-    ):
-        return None
-    output: list[str] = []
-    index = 0
-    while index < len(path):
-        char = path[index]
-        if char != "%":
-            output.append(char)
-            index += 1
-            continue
-        if index + 2 >= len(path) or not re.fullmatch(r"[0-9A-Fa-f]{2}", path[index + 1:index + 3]):
-            return None
-        value = int(path[index + 1:index + 3], 16)
-        decoded = chr(value)
-        if value in {0, ord("/"), ord("\\")}:
-            return None
-        output.append(decoded if decoded in _OPC_UNRESERVED else f"%{value:02X}")
-        index += 3
-
-    decoded_path = "".join(output)
-    if decoded_path.rsplit("/", 1)[-1] in {".", ".."}:
-        return None
-    normalized = posixpath.normpath(decoded_path)
-    if (
-        not normalized
-        or normalized in {".", ".."}
-        or normalized.startswith("/")
-        or normalized.startswith("../")
-    ):
-        return None
-    return normalized.translate(_ASCII_LOWER_TRANSLATION)
-
-
-def _source_part_for_rels(rels_path: str) -> str | None:
-    """Return the source part path represented by a relationship sidecar."""
-    filename = posixpath.basename(rels_path)
-    if filename == ".rels" or not filename.endswith(".rels"):
-        return None
-    source_dir = posixpath.dirname(posixpath.dirname(rels_path))
-    source_name = filename[:-len(".rels")]
-    return posixpath.join(source_dir, source_name) if source_dir else source_name
-
-
-def _resolve_internal_opc_target(rels_path: str, target: str) -> str | None:
-    """Resolve one valid internal OPC Target to its canonical package key."""
-    target_path_query = target.split("#", 1)[0]
-    if (
-        "\\" in target
-        or "?" in target_path_query
-        or any(ord(char) <= 0x20 for char in target)
-    ):
-        return None
-    try:
-        parsed = urlsplit(target)
-    except ValueError:
-        return None
-    if parsed.scheme or parsed.netloc or parsed.query:
-        return None
-
-    source_part = _source_part_for_rels(rels_path)
-    if parsed.path.startswith("/"):
-        resolved = parsed.path[1:]
-    elif parsed.path:
-        base_dir = posixpath.dirname(source_part) if source_part else ""
-        resolved = posixpath.join(base_dir, parsed.path) if base_dir else parsed.path
-    elif source_part and "#" in target:
-        resolved = source_part
-    else:
-        return None
-    return _canonical_opc_part_path(resolved)
-
-
-def _verify_internal_rels_targets(extract_dir: Path) -> list[str]:
-    """Return a list of dangling internal Targets across every .rels in the package.
-
-    Each entry is formatted as "<rels-path> -> <missing-target>". An empty list
-    means every internal Target resolves to a real file in the package.
-    """
-    package_parts: set[str] = set()
-    for path in extract_dir.rglob("*"):
-        if not path.is_file():
-            continue
-        key = _canonical_opc_part_path(path.relative_to(extract_dir).as_posix())
-        if key is not None:
-            package_parts.add(key)
-    problems: list[str] = []
-    for rels_path in extract_dir.rglob('*.rels'):
-        rels_rel = rels_path.relative_to(extract_dir).as_posix()
-        try:
-            root = ET.parse(rels_path).getroot()
-        except ET.ParseError as exc:
-            problems.append(f'{rels_rel} -> <invalid relationships XML: {exc}>')
-            continue
-        for elem in root:
-            attrs = _relationship_attrs(elem)
-            if attrs.get('TargetMode', '').lower() == 'external':
-                continue
-            target = attrs.get('Target')
-            if not target:
-                problems.append(f'{rels_rel} -> <missing Target>')
-                continue
-            resolved = _resolve_internal_opc_target(rels_rel, target)
-            if resolved is None:
-                problems.append(f'{rels_rel} -> <invalid Target {target!r}>')
-                continue
-            if resolved not in package_parts:
-                problems.append(f'{rels_rel} -> {resolved}')
-    return problems
-
-
 def _presentation_format(width: float, height: float) -> str:
     """Map the slide aspect ratio to PowerPoint's PresentationFormat label.
     Non-standard ratios (square, portrait, banner crops) report 'Custom'.
@@ -4779,12 +4662,12 @@ def create_pptx_with_native_svg(
         narration_audio: Optional dict mapping SVG stem to narration audio file.
         use_narration_timings: Whether to set slide auto-advance from audio duration.
         narration_padding: Extra seconds added after each narration before advancing.
-        image_optimize: Whether native export downscales oversized raster images.
-        image_max_dimension: Maximum optimized image dimension in pixels.
-        image_sizing: ``cap`` only limits source dimensions; ``display`` sizes
-            from rendered SVG boxes.
+        image_optimize: Whether native export optimizes raster images when needed.
+        image_max_dimension: Preferred optimized image dimension cap in pixels.
+        image_sizing: ``cap`` preserves unchanged source bytes and limits
+            oversized sources; ``display`` sizes from rendered SVG boxes.
         image_scale: Target image pixels per SVG display pixel.
-        image_quality: JPEG quality used for opaque optimized rasters.
+        image_quality: JPEG quality used when opaque rasters are re-encoded.
         native_objects: Replace explicit ``data-pptx-replace-with`` chart/table
             fallback groups with native PowerPoint Chart/Table objects. Default off.
         conversion_trace_path: Optional JSON path for native conversion diagnostics.
@@ -5001,16 +4884,19 @@ def create_pptx_with_native_svg(
                 if image_sizing == 'display':
                     image_mode = (
                         f"display scale {image_scale:g}, "
-                        f"max {image_max_dimension or 'unlimited'} px"
+                        f"preferred max {image_max_dimension or 'unlimited'} px"
                     )
                 else:
-                    image_mode = f"cap max {image_max_dimension or 'unlimited'} px"
+                    image_mode = (
+                        f"preferred cap {image_max_dimension or 'unlimited'} px, "
+                        "unchanged bytes preserved"
+                    )
                 print(
                     "  Image optimization: Enabled "
-                    f"({image_mode}, JPEG q{image_quality})"
+                    f"({image_mode}, JPEG q{image_quality} when re-encoded)"
                 )
             else:
-                print("  Image optimization: Disabled")
+                print("  Image optimization: Disabled (original bytes)")
         elif use_compat_mode:
             print(f"  Compatibility mode: Enabled (PNG + SVG dual format)")
             print(f"  PNG renderer: {renderer_name} {renderer_status}")
@@ -5945,7 +5831,7 @@ def create_pptx_with_native_svg(
         if package_uses_timings:
             set_directory_use_timings(extract_dir)
 
-        rels_problems = _verify_internal_rels_targets(extract_dir)
+        rels_problems = verify_internal_relationships(extract_dir)
         if rels_problems:
             details = '\n'.join(f'  - {p}' for p in rels_problems)
             raise RuntimeError(

@@ -103,10 +103,14 @@ audio/video workflows because they require media or bookmark targets.
 
 ## Customize Specific Objects
 
-Use `animations.json` only when deck-wide settings are not enough—for example, title first, chart second, conclusion last. The easiest path is to generate a complete scaffold from the actual slide groups, edit it, validate it, and export:
+Use `animations.json` only when deck-wide settings are not enough—for example,
+title first, chart second, conclusion last. List the real groups, write sparse
+overrides for only the affected slides and objects, validate, and export.
+`scaffold` remains an optional complete editing starter; delete untouched
+entries before using it as the final sidecar.
 
 ```bash
-python3 skills/ppt-master/scripts/animation_config.py scaffold <project>
+python3 skills/ppt-master/scripts/animation_config.py list-groups <project>
 python3 skills/ppt-master/scripts/animation_config.py validate <project>
 python3 skills/ppt-master/scripts/svg_to_pptx.py <project>
 ```
@@ -127,7 +131,8 @@ The generated sidecar targets stable top-level `<g id="...">` content groups. Co
 Use `python3 skills/ppt-master/scripts/pptx_animations.py --describe
 <canonical_effect>` to see exactly which options that effect accepts. Speed is
 controlled by `duration`; smooth start/end are controlled by
-`accelerate`/`decelerate`.
+`accelerate`/`decelerate`. Change Font's `font_name` is one concrete
+target-installed PowerPoint face, never a CSS font stack.
 
 `trigger_shape` is group-only and points to a different group id on the same
 slide. It affects only that row; the slide Start mode still controls all other

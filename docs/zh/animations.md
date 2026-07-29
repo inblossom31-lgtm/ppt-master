@@ -95,10 +95,12 @@ OOXML，而不是嵌入视频。对象动画包括进入、强调、动作路径
 
 ## 自定义具体对象
 
-只有当整份 deck 的统一设置不够用时才需要 `animations.json`，例如标题先出现、图表第二个出现、结论最后出现。最简单的方式是从真实页面分组生成完整 scaffold，修改后校验并导出：
+只有当整份 deck 的统一设置不够用时才需要 `animations.json`，例如标题先出现、
+图表第二个出现、结论最后出现。先列出真实分组，只为受影响页面和对象写稀疏覆盖，
+然后校验并导出。`scaffold` 仍可作为完整编辑起点，但最终 sidecar 应删除未改动项。
 
 ```bash
-python3 skills/ppt-master/scripts/animation_config.py scaffold <project>
+python3 skills/ppt-master/scripts/animation_config.py list-groups <project>
 python3 skills/ppt-master/scripts/animation_config.py validate <project>
 python3 skills/ppt-master/scripts/svg_to_pptx.py <project>
 ```
@@ -118,7 +120,8 @@ python3 skills/ppt-master/scripts/svg_to_pptx.py <project>
 
 运行 `python3 skills/ppt-master/scripts/pptx_animations.py --describe
 <canonical_effect>` 可查看该效果实际接受的完整参数。速度由 `duration` 控制，
-平滑开始/结束由 `accelerate`/`decelerate` 控制。
+平滑开始/结束由 `accelerate`/`decelerate` 控制。Change Font 的 `font_name`
+必须是目标环境已安装的一个具体 PowerPoint 字体名，不能写 CSS 字体列表。
 
 `trigger_shape` 只能写在对象组上，并指向同一页另一个分组 id。它只让当前动画行
 变为交互触发，其他行仍遵循页面 Start 模式；录制旁白不接受这种交互动画。
