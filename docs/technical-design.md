@@ -36,7 +36,13 @@ The three layers have separate responsibilities and cannot substitute for one an
 
 ## Generate PPTX Architecture
 
-The diagram below covers the Generate PPTX route, including its `beautify-pptx` profile. Create Template has its own workspace lifecycle, while Fill Native PPTX and Enhance Native PPTX operate directly on OOXML; the route table later in this document covers all four.
+The diagram below covers the default Generate PPTX lifecycle, including its
+`beautify-pptx` profile. The explicit `quick-generate` profile stays inside the
+same route but bypasses its separate planning/confirmation and default delivery
+gates; source understanding and resource preparation still run as needed.
+Create Template has its own workspace lifecycle, while Fill Native PPTX and
+Enhance Native PPTX operate directly on OOXML; the route table later in this
+document covers all four.
 
 ```
 User Input (PDF/DOCX/XLSX/PPTX/URL/Markdown/topic text)
@@ -92,13 +98,32 @@ Output:
     └── svg_output/                            ← A successful copy can rebuild the PPTX from frozen authored SVG
 ```
 
-Without an explicit `-o`, the native-object and narration flags may combine into `<project_name>_<timestamp>_native_charts_tables_narrated.pptx`; explicit `-o` preserves the caller-supplied filename.
+The explicit shortcut removes the separate planning and confirmation phase, not
+the inputs or resources needed to build the deck:
+
+```text
+Source material or topic
+    -> convert/read sources and research identified factual gaps as needed
+    -> decide content, page structure, visual system, and resources in active context
+    -> prepare required images/icons/formulas and resource manifests
+    -> hand-author svg_output/ under the shared SVG standards
+    -> svg_to_pptx.py --quick-generate
+    -> exports/<name>_<timestamp>.pptx
+```
+
+These decisions are made automatically by the current agent without Strategist,
+Confirm UI, `design_spec.md`, or `spec_lock.md`.
+
+In the default flow, without an explicit `-o`, the native-object and narration
+flags may combine into
+`<project_name>_<timestamp>_native_charts_tables_narrated.pptx`; explicit `-o`
+preserves the caller-supplied filename. Quick generation accepts neither flag.
 
 ### SVG as a Constrained Page-Design Language
 
-For every workflow that authors or redesigns visual slides through SVG, `svg_output/` is the complete page-design authority, but SVG here means project-canonical SVG accepted by the project contract—not any SVG a browser can render. Every visible text, image, shape, diagram, chart/table fallback, background, and template-derived layout element that should appear on a slide must already exist in that page SVG or be explicitly referenced by it. Templates, `design_spec.md`, and `spec_lock.md` guide SVG authoring; the exporter does not use them as a second visual layer that fills in missing page content.
+For every workflow that authors or redesigns visual slides through SVG, `svg_output/` is the complete page-design authority, but SVG here means project-canonical SVG accepted by the project contract—not any SVG a browser can render. Every visible text, image, shape, diagram, chart/table fallback, background, and template-derived layout element that should appear on a slide must already exist in that page SVG or be explicitly referenced by it. In the default pipeline, templates, `design_spec.md`, and `spec_lock.md` guide SVG authoring; `quick-generate` instead uses active-context decisions and explicit SVG values. The exporter never uses planning inputs as a second visual layer that fills in missing page content.
 
-Minimal semantic markers do not weaken that closure. Free-design, brand-only, and `template_reuse_scope: style` pages use `pptx_structure.mode: flat`: every represented object stays Slide-local and no Master/Layout identity, layer, or placeholder metadata is authored. Export materializes one clean project-owned Master plus one Blank Layout from the current color/typography lock, removes stock content placeholders and unused built-in Layouts, and retains only the standard date/footer/slide-number capability hooks without promoting Slide content. Only `template_reuse_scope: mirror|layout` uses the structured route, where every new page declares its Master/Layout identity from the first SVG draft. Fixed Master/Layout visuals are direct atomic root children, while reusable content slots are top-level groups with explicit design-zone bounds and one compatible carrier; composite `object` regions use an explicit proxy fallback, and zero-slot Layouts are valid. `data-pptx-role` is reserved for the few structural page-frame objects whose package or animation behavior is not already expressed by specialized metadata. A semantic-legacy template package is not upgraded in place or accepted as a structured Step 3 input: create a new workspace through `create-template`, using a native PPTX's still-present package facts or an old SVG's visuals only as reference, then author new pages through the AI-derived application route. A flat project is intentionally unmapped, not legacy. Export never infers, repairs, or migrates Master/Layout structure or placeholders.
+Minimal semantic markers do not weaken that closure. Free-design, brand-only, `quick-generate`, and `template_reuse_scope: style` pages use flat Slide-local ownership: every represented object stays on the Slide and no Master/Layout identity, layer, or placeholder metadata is authored. Default export materializes one clean project-owned Master plus one Blank Layout from the current color/typography lock; lockless `quick-generate` uses converter-default theme scaffolding. Neither promotes Slide content. Only `template_reuse_scope: mirror|layout` uses the structured route, where every new page declares its Master/Layout identity from the first SVG draft. Fixed Master/Layout visuals are direct atomic root children, while reusable content slots are top-level groups with explicit design-zone bounds and one compatible carrier; composite `object` regions use an explicit proxy fallback, and zero-slot Layouts are valid. `data-pptx-role` is reserved for the few structural page-frame objects whose package or animation behavior is not already expressed by specialized metadata. A semantic-legacy template package is not upgraded in place or accepted as a structured Step 3 input: create a new workspace through `create-template`, using a native PPTX's still-present package facts or an old SVG's visuals only as reference, then author new pages through the AI-derived application route. A flat project is intentionally unmapped, not legacy. Export never infers, repairs, or migrates Master/Layout structure or placeholders.
 
 | Domain | Authority |
 |---|---|
@@ -110,7 +135,7 @@ Minimal semantic markers do not weaken that closure. Free-design, brand-only, an
 
 This is a page-design closure rule, not a claim that SVG describes the entire PPTX package. Rebuilding the visible slide from its completed SVG is the relevant invariant; reconstructing notes, audio, timing, relationships, or direct native edits from SVG alone is not.
 
-`svg_final/` does not change that boundary. Step 7 derives visual previews from `svg_output/`: supported bitmap/SVG resources are inlined when processing succeeds, while EMF/WMF stay external for native passthrough; unresolved ordinary images retain their original references, and the current finalizer counts those processing errors without failing the whole run. These files support IDE/browser inspection and manual insertion as SVG pictures. They are not a second PPTX export route and carry no PowerPoint Convert-to-Shape compatibility contract. Editable shapes come only from the project converter translating `svg_output/` into native DrawingML PPTX.
+`svg_final/` does not change that boundary. In the default pipeline, Step 7 derives visual previews from `svg_output/`: supported bitmap/SVG resources are inlined when processing succeeds, while EMF/WMF stay external for native passthrough; unresolved ordinary images retain their original references, and the current finalizer counts those processing errors without failing the whole run. These files support IDE/browser inspection and manual insertion as SVG pictures. They are not a second PPTX export route and carry no PowerPoint Convert-to-Shape compatibility contract. Editable shapes come only from the project converter translating `svg_output/` into native DrawingML PPTX.
 
 Existing-PPTX requests split by mutation model: the two native workflows bypass SVG, while `beautify-pptx` remains a Generate PPTX profile that regenerates the visible design:
 
@@ -132,6 +157,7 @@ Use this table before reasoning about implementation details. Most failed runs s
 |---|---|---|
 | Topic only, or supplied material lacks facts required by the requested outcome | Generate PPTX + `topic-research` inside Step 1 | topic-only research starts immediately; source-backed research follows conversion/read and fills only identified factual gaps |
 | Source files or conversation text, deck structure may be rethought | Generate PPTX | Strategist may split, merge, drop, reorder, and redesign |
+| Explicit quick generation | Generate PPTX + `quick-generate` profile | convert/read sources, research factual gaps, and prepare required resources as needed; the current agent decides content, pages, visuals, and resources in active context, skips Strategist/confirmation/spec/lock, hand-authors SVG, and exports one PPTX directly |
 | PPTX as source material, user allows a new story/page structure | Generate PPTX via `ppt_to_md` + `pptx_intake` | PPTX identity/geometry are facts and candidates, not replica constraints |
 | Raw PPTX template plus new material/topic | Fill Native PPTX (`template-fill-pptx`) | clone/fill native slides; no SVG generation |
 | Existing PPTX, preserve page count/order/wording 1:1, improve layout | Generate PPTX + `beautify-pptx` profile | regenerate through SVG; content and pagination are locked |
@@ -149,7 +175,7 @@ Ambiguous "optimize this PPT" requests reduce to one discriminator: preserve the
 
 **The pipeline: AI generates SVG → post-processing converts to DrawingML (PPTX).**
 
-The full flow breaks into three stages:
+The default full flow breaks into three stages:
 
 **Stage 1 — Content Understanding & Design Planning**
 Source documents (PDF/DOCX/XLSX/PPTX/URL/Markdown/topic text) are converted into the content and analysis facts the Strategist needs. The Strategist confirms an open communication contract, derives a complete deck solution from it, resolves production mechanics, and produces the design specification.
@@ -159,6 +185,13 @@ The Executor role generates each slide as an SVG file. The output of this stage 
 
 **Stage 3 — Engineering Conversion**
 Post-processing scripts convert supported SVG vector elements to DrawingML. Text and vector shapes stay native PowerPoint objects — clickable, editable, and restylable — while raster assets are copied as PPT picture media instead of flattening the slide into one image.
+
+`quick-generate` retains the source-understanding and resource-preparation work
+needed by the deck, but skips the separate Strategist planning/confirmation
+phase and the default report-producing gates. The current agent makes those
+content, page, visual, and resource decisions automatically in active context,
+then authors under the shared SVG standards and uses the same DrawingML
+converter, which performs in-memory ZIP and published-Slide-count validation.
 
 ---
 
@@ -183,6 +216,14 @@ design_spec.md + spec_lock.md + images/ + icons/ + templates/
           ├─> finalize_svg.py -> svg_final/
           └─> svg_to_pptx.py -> exports/<name>_<ts>.pptx + validation/<output_stem>.report.json
                                        backup/<ts>/svg_output/ [default output path; copy is best-effort after directory creation]
+
+Quick Generate:
+source material or topic
+    └─> conversion/read + factual-gap research [as needed]
+          └─> active-context content/page/visual/resource decisions
+                └─> images/ + icons/ + formula/resource manifests [as needed]
+                      └─> hand-authored svg_output/
+                            └─> svg_to_pptx.py --quick-generate -> exports/*.pptx
 
 Direct OOXML routes:
 analysis/<stem>.slide_library.json + source PPTX + fill_plan.json
@@ -253,7 +294,7 @@ Two converter design choices still shape the system:
 
 ## Project Structure & Lifecycle
 
-`project_manager.py init` creates the fixed project working directories; a later default export creates a timestamped backup directory and then attempts to copy a `backup/` snapshot. The explicit test-only [`quick-test`](../skills/ppt-master/workflows/profiles/quick-test.md) profile bypasses that lifecycle and creates only `svg_output/` plus the PPTX destination. The normal delivery lifecycle is:
+`project_manager.py init` creates the fixed project working directories; a later default export creates a timestamped backup directory and then attempts to copy a `backup/` snapshot. The explicit [`quick-generate`](../skills/ppt-master/workflows/profiles/quick-generate.md) profile omits the planning artifacts and default delivery sidecars, but its project may still contain converted sources, analysis, images, icons, rendered formulas, and required resource manifests. It then hand-authors `svg_output/` and writes the PPTX destination directly. The default delivery lifecycle is:
 
 | Directory | Role |
 |---|---|
@@ -282,17 +323,17 @@ These invariants are stronger than ordinary implementation preferences. If a cha
 
 | Invariant | Practical consequence |
 |---|---|
-| `sources/` content-type files are the main-pipeline content contract | text, tables, and chart values come from content-type files in `sources/` (Markdown is primary, but `.txt` / `.csv` / `.json` / `.yaml` / … count too); known sidecars (`*.conversion_profile.json`, `*_files/image_manifest.json`) are excluded |
-| `analysis/` stores machine facts, not design contracts | `source_profile.json` and intake artifacts inform Strategist; they do not lock page count/order except in workflows that say so |
-| `design_spec.md` explains the design; `spec_lock.md` executes it | both remain owning artifacts; an on-demand projection never replaces them |
+| `sources/` content-type files are the Generate content contract | text, tables, and chart values come from content-type files in `sources/` (Markdown is primary, but `.txt` / `.csv` / `.json` / `.yaml` / … count too); known sidecars (`*.conversion_profile.json`, `*_files/image_manifest.json`) are excluded |
+| `analysis/` stores machine facts, not design contracts | `source_profile.json` and intake artifacts inform Strategist in the default pipeline and the current agent in `quick-generate`; they do not lock page count/order except in workflows that say so |
+| `design_spec.md` explains the design; `spec_lock.md` executes it in the default pipeline | both remain owning artifacts there; `quick-generate` persists neither, and the current agent keeps its content, page, visual, and resource decisions in active context |
 | Planning context is retained until invalidated | continuous execution reuses the complete Design Spec, lock, and triggered references; fresh/resumed/restarted or compacted execution reloads them once |
 | `page-context` is on demand | the read-only projector supports diagnostics, deterministic routing checks, and optional usage telemetry; it is not a pre-page gate |
 | `svg_output/` is the only hand-authored SVG directory | quality checks, manual edits, re-export, and `update_spec.py` target authored source |
-| `svg_final/` is mandatory but derived in normal delivery | it is regenerated from `svg_output/` for visual preview or manual insertion as an SVG picture; supported resources are inlined when possible while EMF/WMF retain an external-reference exception, and it never becomes the native export source of truth; quick-test skips this artifact |
+| `svg_final/` is mandatory but derived in default delivery | it is regenerated from `svg_output/` for visual preview or manual insertion as an SVG picture; supported resources are inlined when possible while EMF/WMF retain an external-reference exception, and it never becomes the native export source of truth; quick-generate skips this artifact |
 | Native PPTX export reads `svg_output/` by default | converter preserves icons, `preserveAspectRatio`, rounded rects, and native image crop metadata before finalization rewrites them |
 | PowerPoint Convert to Shape is outside the compatibility contract | `svg_final/` may be inserted as an SVG picture, but the converted structure and visual result are not guaranteed and do not constrain the supported SVG feature set |
 | Direct OOXML routes do not enter the SVG pipeline | preservation workflows patch native PPTX parts directly |
-| Image facts come from regenerated metadata | `analysis/image_analysis.csv` is re-derived from the live `images/` folder; Strategist uses source context first and inspects only a specifically ambiguous asset when semantics or safe placement cannot otherwise be resolved; Executor does not re-read source pixels |
+| Image facts come from regenerated metadata | `analysis/image_analysis.csv` is re-derived from the live `images/` folder; in the default pipeline Strategist uses source context first and inspects only a specifically ambiguous asset when semantics or safe placement cannot otherwise be resolved, while in `quick-generate` the current agent applies the same bounded analysis while preparing resources; SVG authoring does not rescan source pixels |
 | Raw PPTX templates are not Step 3 templates | Step 3 consumes reusable template directories only |
 
 ---
@@ -366,7 +407,7 @@ The three Stage 3 proactive values remain independent raw evidence. In
 particular, enabling narration may enable the effective Speaker Notes outcome
 in the Design Spec, but it never rewrites the raw speaker-notes choice.
 
-**Image analysis is metadata-first, with a narrow Strategist visual fallback.** When images exist, `analyze_images.py` supplies the regenerated measured facts in `analysis/image_analysis.csv`; the CSV is a view over the live `images/` folder, not a durable cache. Strategist first resolves supplied images from source placement and nearby prose, captions / alt text / titles, filenames, user notes, existing resource records, and that metadata. It may inspect one specific image only when a material ambiguity remains about selection, factual identity, page role, crop safety, or focal placement—never as a bulk inventory scan. The answer is written into Design Spec §VIII, after which Executor uses the plan and measured geometry without reopening source pixels for semantic discovery. User images, extracted images, web images, AI outputs, formulas, and sliced elements still converge into the same measured fact table.
+**Image analysis is metadata-first, with a narrow visual fallback.** When images exist, `analyze_images.py` supplies the regenerated measured facts in `analysis/image_analysis.csv`; the CSV is a view over the live `images/` folder, not a durable cache. In the default pipeline, Strategist first resolves supplied images from source placement and nearby prose, captions / alt text / titles, filenames, user notes, existing resource records, and that metadata. It may inspect one specific image only when a material ambiguity remains about selection, factual identity, page role, crop safety, or focal placement—never as a bulk inventory scan. The answer is written into Design Spec §VIII, after which Executor uses the plan and measured geometry without reopening source pixels for semantic discovery. In `quick-generate`, the current agent applies the same bounded analysis while automatically preparing the resource roster in active context; no Design Spec projection is written. User images, extracted images, web images, AI outputs, formulas, and sliced elements still converge into the same measured fact table.
 
 **Retained planning context** carries continuity; the on-demand page projector is only a diagnostic described below.
 
@@ -374,19 +415,19 @@ in the Design Spec, but it never rewrites the raw speaker-notes choice.
 
 ## Execution Discipline
 
-Generate execution is governed by [`workflows/generate-pptx.md`](../skills/ppt-master/workflows/generate-pptx.md), which owns Step 1–7 and the generation-specific rules; [`SKILL.md`](../skills/ppt-master/SKILL.md) owns only global execution discipline and the mandatory handoff to `routing.md`. Together, these rules may look bureaucratic but exist because LLMs default to "let me solve the whole problem in this turn", which is exactly the wrong shape for a serial pipeline where each step's output is bounded, checkpointed, and consumed by the next. They close failure modes that surfaced repeatedly in practice: out-of-order execution, AI proxying user design decisions, cross-phase bundling, missing prerequisites, speculative pre-work, sub-agent context loss, page-batching drift, long-deck color/font drift, batch/script-generated SVG drift, and routing ambiguity.
+Generate execution is governed by [`workflows/generate-pptx.md`](../skills/ppt-master/workflows/generate-pptx.md), which owns the default Step 1–7 sequence, the explicit quick-generation short circuit, and the generation-specific rules; [`SKILL.md`](../skills/ppt-master/SKILL.md) owns only global execution discipline and the mandatory handoff to `routing.md`. Together, these rules may look bureaucratic but exist because LLMs default to "let me solve the whole problem in this turn", which is exactly the wrong shape for a serial pipeline where each step's output is bounded, checkpointed, and consumed by the next. They close failure modes that surfaced repeatedly in practice: out-of-order execution, AI proxying user design decisions, cross-phase bundling, missing prerequisites, speculative pre-work, sub-agent context loss, page-batching drift, long-deck color/font drift, batch/script-generated SVG drift, and routing ambiguity.
 
 Global stop/continue policy is authoritative in [`failure-recovery.md`](../skills/ppt-master/workflows/governance/failure-recovery.md); its concrete recovery matrix and resume pointers currently cover Generate PPTX. This section does not duplicate those rules.
 
-Three boundaries are especially important to the architecture. First, Executor page SVGs must be hand-authored by the current main agent, one page at a time; writing a Python/Node/shell generator to emit pages is prohibited because the resulting deck loses cross-page judgment and visual continuity. Second, generation cadence is fixed as `P01 → first-page gate → uninterrupted remaining pages → final gate`. P01 is a method sample, not merely a visual mock: execution emits a `gate-signal` separating method-level, page-local, and not-yet-exercised capabilities, then carries resolved method rules into later pages. No checker call or page batch interrupts P02 through the final page. Third, routing is deterministic: raw PPTX template requests, beautify-profile requests, native enhancement, custom-animation stages, live-preview stages, and other registered triggers are not turned into open-ended user route questions when the repository already defines the boundary.
+Three boundaries are especially important to the architecture. First, page SVGs must be hand-authored by the current main agent, one page at a time; writing a Python/Node/shell generator to emit pages is prohibited because the resulting deck loses cross-page judgment and visual continuity. Second, default-pipeline cadence is `P01 → first-page gate → uninterrupted remaining pages → final gate`. P01 is a method sample: execution emits a `gate-signal`, then carries resolved method rules into later pages; no checker call or page batch interrupts P02 through the final page. `quick-generate` retains serial hand-authoring and P01 as its visual anchor but skips both checker gates. Third, routing is deterministic: raw PPTX template requests, beautify-profile requests, native enhancement, custom-animation stages, live-preview stages, and other registered triggers are not turned into open-ended user route questions when the repository already defines the boundary.
 
-The Role Switching Protocol (mandated read of `references/<role>.md` before mode change) serves two reinforcing purposes: forcing fresh role instructions into context overrides drift from the previous mode, and the visible marker in the conversation transcript creates an audit trail so the user can see when the agent moved between modes — critical when reviewing why a particular decision was made.
+In the default pipeline, the Role Switching Protocol (mandated read of `references/<role>.md` before mode change) serves two reinforcing purposes: forcing fresh role instructions into context overrides drift from the previous mode, and the visible marker in the conversation transcript creates an audit trail so the user can see when the agent moved between modes — critical when reviewing why a particular decision was made.
 
 ---
 
 ## Spec Propagation: spec_lock.md as Contextual Execution Contract
 
-The Strategist phase produces two artifacts that look redundant but serve different masters:
+In the default pipeline, the Strategist phase produces two artifacts that look redundant but serve different masters:
 
 - `design_spec.md` — human-readable narrative; the "why" of the deck (communication intent, audience outcome, narrative / template / visual rationale, page outline)
 - `spec_lock.md` — machine-readable execution contract; the compact `audience` / `objective` / `core_message` communication anchors plus stable identity/reuse roles and routing values (core HEX/font roles, icon library, image resources, and structure mappings)
@@ -409,7 +450,9 @@ The tool refuses to back up: it relies on git for revert. Adding a backup mechan
 
 ## Materials → Plan → Realization: the Kitchen Contract
 
-The cooking analogy is the canonical ownership model for generation, not just explanatory prose:
+The cooking analogy is the canonical ownership model for the default Generate
+pipeline, not just explanatory prose. `quick-generate` removes the separate
+Strategist and confirmation layer; it does not remove preparation.
 
 | Restaurant | PPT Master | Authority |
 |---|---|---|
@@ -417,15 +460,23 @@ The cooking analogy is the canonical ownership model for generation, not just ex
 | Menu planner and preparation lead | Strategist, `design_spec.md`, `spec_lock.md`, and Strategist-owned acquisition stages | Assesses sufficiency; fills permitted factual gaps; selects the content, resources, page roster, chart-reference/template-layout keys, fonts, palette anchors, icons, and crop boundaries; records optional capability/expression recommendations; readies the complete project-local inventory before execution |
 | Cook | Executor | Uses only prepared project-local assets and realizes the plan through geometry, composition, hierarchy, spacing, and treatment without changing the selected “dish” or acquiring/substituting ingredients; may adapt fields explicitly labeled as suggestions or References |
 
-**Preparation has two clocks.** Topic Research supplies facts before final confirmation: it starts immediately for topic-only input, or after supplied material is converted/read when planning-critical factual gaps remain. It supplements only those gaps and acquires no images. AI / web / slice image acquisition runs only after final confirmation and the completed `design_spec.md §VIII` / `spec_lock.md`, then reaches a terminal status before Executor starts. Strategist also resolves, syncs, and validates the icon inventory while authoring the final plan. Image_Generator, Image_Searcher, and icon-sync tooling are preparation mechanisms under Strategist ownership, not independent decision owners.
+**Quick generation collapses planning into the current agent.** Source conversion,
+factual-gap research, and resource preparation still run when needed. The agent
+automatically selects the content, page roster, visual system, and resource
+needs in active context, prepares supplied/extracted/AI/web/sliced images,
+icons, and formulas with their required manifests or provenance records, and
+then hand-authors SVG. It does not invoke Strategist, Confirm UI,
+`design_spec.md`, or `spec_lock.md`.
 
-**Prepared project-local assets are the boundary.** Images and other declared resources remain available only when Strategist has selected them, recorded them in the planning artifacts, and made their project paths resolvable or explicitly `Needs-Manual`. Icons are prepared when their SVG files exist under `<project>/icons/`; `spec_lock.icons.inventory` records the Strategist's planned bundled selection but is not an exhaustive execution whitelist. Files elsewhere on disk are not authorized. Missing material returns upstream; Executor never searches, generates, downloads, syncs, or substitutes it.
+**Default preparation has two clocks.** Topic Research supplies facts before final confirmation: it starts immediately for topic-only input, or after supplied material is converted/read when planning-critical factual gaps remain. It supplements only those gaps and acquires no images. AI / web / slice image acquisition runs only after final confirmation and the completed `design_spec.md §VIII` / `spec_lock.md`, then reaches a terminal status before Executor starts. Strategist also resolves, syncs, and validates the icon inventory while authoring the final plan. Image_Generator, Image_Searcher, and icon-sync tooling are preparation mechanisms under Strategist ownership, not independent decision owners. Quick generation uses those preparation mechanisms as needed under the current agent's in-context decisions, without inserting a confirmation gate.
 
-**Specificity controls freedom.** “Make Mapo tofu” fixes the result's identity: technique and presentation may vary, but tomato-and-eggs or tofu soup is a substitution. “Make a tofu dish” leaves an in-class choice. Strategist may resolve that choice; if the Design Spec deliberately leaves a dimension broad, Executor may realize it within that envelope. Once the Design Spec names a binding choice, execution cannot reopen it. Fields explicitly labeled as suggestions or References—including a preferred page-local image pattern—remain expression guidance that Executor may adapt without changing content, resources, identity, or explicit constraints.
+**Prepared project-local assets are the boundary.** In the default pipeline, images and other declared resources remain available only when Strategist has selected them, recorded them in the planning artifacts, and made their project paths resolvable or explicitly `Needs-Manual`. Icons are prepared when their SVG files exist under `<project>/icons/`; `spec_lock.icons.inventory` records the Strategist's planned bundled selection but is not an exhaustive execution whitelist. In quick generation, the active-context resource roster and its project-local files/manifests replace that planning projection; the current agent may acquire and prepare those resources before SVG authoring. Files elsewhere on disk are not authorized. Missing material returns to the owning preparation step; SVG authoring never silently substitutes it.
 
-**Garnish remains local.** Sparse page-local font or color accents may add hierarchy, differentiation, or atmosphere without becoming a second visual system. Structural/recurring fonts, palette roles, resources, or recurring cross-page identity patterns remain Strategist decisions and require an upstream Design Spec/lock update before reuse. A page-local §VIII image pattern remains a preferred composition reference.
+**Specificity controls freedom.** “Make Mapo tofu” fixes the result's identity: technique and presentation may vary, but tomato-and-eggs or tofu soup is a substitution. “Make a tofu dish” leaves an in-class choice. In the default pipeline, Strategist may resolve that choice; if the Design Spec deliberately leaves a dimension broad, Executor may realize it within that envelope. Once the Design Spec names a binding choice, execution cannot reopen it. In quick generation, the current agent resolves the equivalent choice in active context and keeps it stable while authoring. Fields explicitly labeled as suggestions or References—including a preferred page-local image pattern—remain expression guidance that may be adapted without changing content, resources, identity, or explicit constraints.
 
-**Prompt-refactor invariant.** Compression must preserve initial materials, user confirmation, Strategist-owned preparation, planning ownership, and execution freedom as separate layers. Moving acquisition into Executor, turning permission into quota, flexible realization into silent resource/identity reselection, or an exact binding plan into an approximate target is a semantic regression. Runtime authority lives in [`strategist.md`](../skills/ppt-master/references/strategist.md) and [`executor-base.md`](../skills/ppt-master/references/executor-base.md); prompt-writing governance lives in [`prompt-style.md`](./rules/prompt-style.md).
+**Garnish remains local.** Sparse page-local font or color accents may add hierarchy, differentiation, or atmosphere without becoming a second visual system. In the default pipeline, structural/recurring fonts, palette roles, resources, or recurring cross-page identity patterns remain Strategist decisions and require an upstream Design Spec/lock update before reuse; in quick generation, the current agent establishes those anchors in active context and preserves them across pages. A default-pipeline page-local §VIII image pattern remains a preferred composition reference.
+
+**Prompt-refactor invariant.** In the default pipeline, compression must preserve initial materials, user confirmation, Strategist-owned preparation, planning ownership, and execution freedom as separate layers. Moving acquisition into Executor, turning permission into quota, flexible realization into silent resource/identity reselection, or an exact binding plan into an approximate target is a semantic regression. The explicit quick profile consolidates the first layers under the current agent; it does not erase source or resource work. Default runtime authority lives in [`strategist.md`](../skills/ppt-master/references/strategist.md) and [`executor-base.md`](../skills/ppt-master/references/executor-base.md); Quick runtime authority starts at [`quick-generate.md`](../skills/ppt-master/workflows/profiles/quick-generate.md) and conditionally loads the same resource references. Prompt-writing governance lives in [`prompt-style.md`](./rules/prompt-style.md).
 
 ---
 
@@ -491,7 +542,7 @@ The architectural reasons worth knowing here:
 
 **Why placed before post-processing, not after.** Post-processing rewrites SVG (icon embedding, image inlining), which would mask source-level violations. Reading `svg_output/` directly catches the Executor's actual output, before any cleanup that might paper over a bug.
 
-**Why there are first-page and final checks.** The P01 gate treats the first page as a method sample: it separates method-level, page-local, and not-yet-exercised capabilities, reviews the complete issue set, then fixes every blocking error and selected advisory warnings in one consolidated loop. After it passes, P02 through the final page are generated continuously without checker calls; only the final gate inspects the complete authored set before release. The first calibrates method, while the second verifies the whole deck, so neither substitutes for the other.
+**Why the default pipeline has first-page and final checks.** The P01 gate treats the first page as a method sample: it separates method-level, page-local, and not-yet-exercised capabilities, reviews the complete issue set, then fixes every blocking error and selected advisory warnings in one consolidated loop. After it passes, P02 through the final page are generated continuously without checker calls; only the final gate inspects the complete authored set before release. The first calibrates method, while the second verifies the whole deck, so neither substitutes for the other.
 
 **Severity model: errors block, warnings do not, and there is intentionally no auto-fix.** Severity is determined by whether the input maps deterministically and legally, not merely by whether it uses the recommended spelling:
 
@@ -536,7 +587,7 @@ Validation JSON files are cold audit artifacts, not routine model inputs. The ex
 
 This is easy to miss when reading the code. Shared cleanup modules, the local-reference expander, and the inline-geometry materializer are used both to write `svg_final/` and in memory during native conversion. The checker, editor, and structure parser also share parts of the geometry interpretation, but they are not artifact consumers in this section.
 
-**Disk consumer** — in normal delivery, `finalize_svg.py` writes `svg_output/` → `svg_final/` once per run, expanding both project icon placeholders and qualified local `<use>` references. This mandatory normal-flow output feeds IDE/browser preview and may be inserted manually as an SVG picture; it is not converted into a separate PPTX artifact. Quick-test skips the disk consumer.
+**Disk consumer** — in the default Generate flow, `finalize_svg.py` writes `svg_output/` → `svg_final/` once per run, expanding both project icon placeholders and qualified local `<use>` references. This mandatory default-flow output feeds IDE/browser preview and may be inserted manually as an SVG picture; it is not converted into a separate PPTX artifact. Quick-generate skips the disk consumer.
 
 **Memory consumer** — native pptx generation reads `svg_output/` directly (no disk hop). It materializes author SVG inline geometry, expands project icon placeholders, materializes geometry injected by those icons, expands qualified local `<use>` references, and finally processes positional text runs:
 
@@ -673,7 +724,7 @@ Supporting files stay separate only to keep route contracts focused and load opt
 
 | Class | Runbooks | Owning route |
 |---|---|---|
-| Generation profile | `beautify-pptx` | Generate PPTX with wording, page count, and page order frozen 1:1 |
+| Generation profiles | `beautify-pptx`, `quick-generate` | Generate PPTX with either wording/page invariants or the explicit direct SVG-to-PPTX short circuit |
 | Template child workflows | `create-brand`, `create-layout`, `create-deck` | Create Template dispatches exactly one for identity-only, brand-neutral/application-neutral structure, or a recurring application with integrated identity/structure |
 | Template-input stage | `apply-template-workspace` | Generate PPTX Step 3; loaded only when an explicit workspace-root path triggers it |
 | Generation stages | `topic-research`, `resume-execute`, `refine-spec`, `verify-charts`, `visual-review`, `live-preview`, `customize-animations` | Generate PPTX at their defined intake, planning, editing, quality, or post-processing points |

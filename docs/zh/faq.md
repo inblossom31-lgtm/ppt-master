@@ -79,25 +79,29 @@ python3 skills/ppt-master/scripts/update_repo.py
 
 ## Q: 生成的 PPT 可以编辑吗？
 
-可以。SVG 管线统一由项目转换器读取 `svg_output/` 并生成原生 DrawingML `.pptx`；文字、图形和颜色无需额外转换即可编辑，文件以时间戳命名保存至 `exports/`。在正式交付流程中，Executor 的原始 SVG 源（`svg_output/` 副本）会镜像到 `backup/<timestamp>/svg_output/`，便于归档或基于该版重跑 `finalize_svg → svg_to_pptx` 重建 PPTX，无需再走 LLM。
+可以。SVG 管线统一由项目转换器读取 `svg_output/` 并生成原生 DrawingML `.pptx`；文字、图形和颜色无需额外转换即可编辑，文件以时间戳命名保存至 `exports/`。在默认 Generate 流程中，Executor 的原始 SVG 源（`svg_output/` 副本）会镜像到 `backup/<timestamp>/svg_output/`，便于归档或基于该版重跑 `finalize_svg → svg_to_pptx` 重建 PPTX，无需再走 LLM。
 
-正式交付的 Step 7 仍会强制生成 `svg_final/`。其中每页都是自包含的视觉预览 SVG，可直接在浏览器或 IDE 中打开，也可作为 SVG 图片手动插入 PowerPoint；显式快速测试会跳过预览和备份产物。项目只保证 `svg_final/` 作为预览或图片显示，不保证 PowerPoint 手工“转换为形状”后的结果。需要可编辑形状时，请使用 `exports/` 中由项目转换器生成的原生 PPTX。
+默认 Generate 流程的 Step 7 仍会强制生成 `svg_final/`。其中每页都是自包含的视觉预览 SVG，可直接在浏览器或 IDE 中打开，也可作为 SVG 图片手动插入 PowerPoint；显式快速生成会跳过预览和备份产物。项目只保证 `svg_final/` 作为预览或图片显示，不保证 PowerPoint 手工“转换为形状”后的结果。需要可编辑形状时，请使用 `exports/` 中由项目转换器生成的原生 PPTX。
 
-## Q: 为什么一段正文被拆成了好几个文本框？能不能一段一个文本框？
+## Q: 多行文本会怎样导出？可以让 PowerPoint 自动重排吗？
 
-默认会把可合并的正文段落导出成一个可编辑的 PowerPoint 文本框，内部保留多个段落。**拉伸框时文字会在框内自动重排**。
+默认会把可合并的多行文本块导出成一个可编辑的 PowerPoint 文本框，保留作者断行并禁用 PowerPoint 自动换行，因此拉伸文本框不会重写作者排好的行。普通生成文本框使用 PowerPoint 原生的“根据文字调整形状大小”：删除保留的换行后，文本框会随文字扩展，不会让文字留在框外。导入的精确文本框和结构化多行占位符 carrier 保持原有的固定尺寸行为。
 
-如果你需要严格保持逐行版式，重新导出时加上 `--no-merge`：
+如果需要让 PowerPoint 自动重排适合流动的正文，请使用 `--reflow-text`：
+
+```bash
+python3 skills/ppt-master/scripts/svg_to_pptx.py <project_path> --reflow-text
+```
+
+该模式会恢复段落自动重排，最终行数可能改变。旧参数 `--merge-paragraphs` 是 `--reflow-text` 的兼容别名。
+
+只有每一视觉行都必须成为独立的 PowerPoint 文本框时，才使用 `--no-merge`：
 
 ```bash
 python3 skills/ppt-master/scripts/svg_to_pptx.py <project_path> --no-merge
 ```
 
-使用 `--no-merge` 时，SVG 里的每一视觉行都会变成一个独立的 PowerPoint 文本框。这样能**逐像素保留 SVG 的版式**，适合封面、图表、表格、以及任何对版式精度敏感的页面。
-
-**代价**：默认合并会保留一个可编辑文本框和原始视觉行边界；只有需要让每一视觉行都能单独移动时才使用 `--no-merge`。判定足够保守——非段落型 `<text>` 会自动落回按行拆框路径。
-
-跟 AI 对话时也可以直接说："这个页面要严格保持逐行版式" —— AI 重新导出时会加上 `--no-merge`。
+该模式保留逐行独立的对象位置，但 12 行正文会变成 12 个文本框。与 AI 对话时，可以直接说“允许文字自动重排”或“每一视觉行使用独立文本框”，由它选择对应的导出模式。
 
 ## Q: 字号为什么用 px 不是 pt？导出后字号会变吗？
 
@@ -198,11 +202,11 @@ python3 skills/ppt-master/scripts/svg_to_pptx.py <project> -a auto --animation-t
 
 如果感觉生成很慢，检查一下模型的 token 吞吐速度。瓶颈通常在模型的输出速度，而不是脚本本身。
 
-## Q: 临时测试几页 PPT，可以走快速模式吗？
+## Q: 可以跳过策略师阶段直接生成吗？
 
-可以。请明确说明这是一次**快速测试**，并给出少量、固定、自包含的页面清单。Generate 路线会启用 [`quick-test` profile](../../skills/ppt-master/workflows/profiles/quick-test.md)：AI 直接手写 `svg_output/`，随后调用测试专用的直接导出器。
+可以。请显式要求**快速生成**。Generate 路线会启用 [`quick-generate` profile](../../skills/ppt-master/workflows/profiles/quick-generate.md)：仍按需转换来源并研究已识别的事实缺口，但当前 Agent 会在上下文中自动决定内容、页结构、视觉系统和资源清单，不进入 Strategist、确认、`design_spec.md` 或 `spec_lock.md`。
 
-该模式只产出 SVG 页面和一个 PPTX；不会做源文件转换、事实研究、策略师规划与确认、模板套用、素材获取、Live Preview、质量报告、讲稿、`svg_final/`、备份、动画或旁白。正式交付、需要事实或源文件、依赖外部素材/模板/原生图表表格，或要求复用时，仍走标准流程。
+该 profile 仍会按需备齐生成 deck 所需的资源：用户提供或源文件抽取的图片、AI / 网络 / 切片图片、项目图标、渲染公式，以及对应的必要 manifest 或来源记录。备料完成后，当前 Agent 按共享规范手写 `svg_output/`，随后调用直接导出器。短路流程仍不包含结构化模板复用、原生图表 / 表格替换、Live Preview、视觉复核交付、质量报告、讲稿、`svg_final/`、备份、动画或旁白；页数本身既不会自动触发，也不会阻止快速生成。这是工作流短路，不承诺具体耗时，也不承诺与默认流程质量等价。
 
 ## Q: 长 PPT 一次生成会不会上下文爆掉？
 
