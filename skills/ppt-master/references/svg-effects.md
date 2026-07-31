@@ -2,28 +2,47 @@
 
 # SVG Effects and Geometry Specification
 
-Conditional reference for advanced paint, effects, transforms, freeform/radial geometry, and constructed visual styles. Load only when the page uses one of these capabilities.
+Authority for advanced paint, effects, transforms, freeform/radial geometry, and constructed visual styles. Default and Quick Generate load it before SVG authoring; other SVG-authoring routes follow their workflow trigger.
 
 **Cross-reference map**: unqualified §1, §2, and §4 references point to [`shared-standards-core.md`](./shared-standards-core.md); §6 references are local to this file.
 
 ## 6. Advanced SVG Effects and Authoring Techniques
 
-**Reference — not a constraint**: “Advanced” means capability depth, not rarity.
-Use any compatible technique when it serves the locked visual style and content.
+**Mandatory**: Default and Quick Generate read this file completely before SVG
+authoring and keep its compatible techniques in active construction vocabulary.
+Before constructing each page, run the §6.1 selection procedure and use §6.13
+to route each diagnosed visual job.
+
+**Default — situational use (may override when plain construction is stronger)**:
+“Advanced” means capability depth, not an effect quota. During page authoring,
+recall relevant techniques from content, hierarchy, legibility, semantics,
+rhythm, and style; apply those that materially help.
 
 ### 6.1 Availability, Precedence, and Fidelity
 
 | Decision layer | Authority |
 |---|---|
 | Technical validity | Required / Forbidden / Conditional contracts in this file |
-| Project values | `<project_path>/spec_lock.md` stable anchors plus the retained Design Spec and current page context |
-| Aesthetic fit | Locked `visual_style` / `visual_style_behavior` |
+| Project values | Default: `<project_path>/spec_lock.md` anchors plus retained Design Spec/page context; Quick: anchors resolved in the current context |
+| Aesthetic fit | Locked or Quick-resolved `visual_style` / `visual_style_behavior` |
 | Per-page choice | Content purpose, hierarchy, legibility, semantics, and rhythm |
 
+**Mandatory — job-first effect selection**: start from a readable, editable
+plain construction, not from the effect catalog.
+
+| Pass | Decision |
+|---|---|
+| Baseline | Name the concrete job an effect would perform: separate planes, direct attention, integrate image and text, encode state/direction, or express the locked or Quick-resolved material/style. If plain hierarchy already performs it, keep the plain construction. |
+| Surface | Identify the exact target—text, image, line, geometry, or a supported `<g>` / `<use>` subtree—and verify that the owning subsection allows that operation on the surface and states usable fidelity. |
+| Select | Route the job through §6.13 and choose the smallest compatible technique that performs it. When alternatives communicate equally well, prefer `Native-stable` / `Native-normalized` over `Approximate` or `Bake-required`. |
+| Integrate | Align paint, contour, light direction, hierarchy, and z-order with the page. Combine techniques only when each owns a different job; never stack shadow, glow, gradient, border, and tint merely to look advanced. |
+| Gate / Stop | Check legibility, editability, object density, native fidelity, and style fit. Simplify for legibility/style failures; use a legal explicit layer or alternative for unsupported syntax; bake the smallest visual layer/asset only when the intent truly depends on pixels. Keep authoritative text/data native and review any material `Approximate` result in the exported PPTX. |
+
 **Reference — illustrative colors**: colors below demonstrate syntax only;
-generated pages choose paint from the locked identity anchors, visual style,
-content semantics, and current composition. A contextual tint, gradient stop,
-shadow/glow paint, or one-off display color need not already be a lock row;
+generated pages choose paint from the Default locked or Quick-resolved identity
+anchors, visual style, content semantics, and current composition. A contextual
+tint, gradient stop, shadow/glow paint, or one-off display color need not
+already be a persistent identity role;
 promote it only when it becomes a recurring named role. Fidelity labels are defined
 in [`shared-standards-core.md`](./shared-standards-core.md). Review an `Approximate` result in native PPTX
 when the effect carries material meaning.
@@ -104,7 +123,7 @@ closed parser checks. See
 | Definition | Direct `<linearGradient>` / `<radialGradient>` child of `<defs>` with unique `id` |
 | Reference | Exact local `url(#id)` |
 | Stops | ≥2 direct `<stop>` children; explicit color; finite non-decreasing offset in `0..1` or `0%..100%` (ties form hard edges); optional alpha |
-| Coordinates | `objectBoundingBox` only. Generated values: `0..1`; omitted linear axis = `(0,0) → (1,0)`. Only import-normalized linear projections may reach `-0.105..1.105`; radial values stay in `0..1` |
+| Coordinates | `objectBoundingBox` only. Generated values: `0..1`; omitted linear axis = `(0,0) → (1,0)`. Only import-normalized linear projections may reach `-0.105..1.105`; radial values stay in `0..1`, and their effective focus must lie inside the circle centered at `(0.5,0.5)` with radius `0.5` |
 | Forbidden | External/quoted refs, `href` inheritance, `gradientTransform`, `spreadMethod`, CSS gradients |
 
 | Target | Contract and fidelity |
@@ -115,8 +134,13 @@ closed parser checks. See
 | `<image>` | No gradient paint; use §6.5 overlays |
 
 Linear export preserves stops/alpha and reduces direction to an angle;
-coincident endpoints are invalid. Radial export centers a circular
-approximation, dropping `cx/cy/r/fx/fy`. Gradient strokes stay editable;
+coincident endpoints are invalid. Radial export preserves the effective focus
+(`fx/fy`, otherwise `cx/cy`) as a point-focused circle; its outer center and
+radius normalize to `0.5`, so distinct outer `cx/cy` and `r` are dropped. A
+focus outside that canonical circle is invalid because SVG renderers clamp it
+to the circumference while DrawingML retains the rectangle coordinates;
+reverse import centers such a source focus and records a diagnostic.
+Gradient strokes stay editable;
 reverse import may keep the first stop only. Stop alpha multiplies element opacity.
 PPTX import normalizes gradients and reports degradation;
 `--strict` keeps the closed parser contract. See
@@ -124,7 +148,7 @@ PPTX import normalizes gradients and reports degradation;
 Checker/exporter preflight share this validation.
 Gradient-stop colors are contextual paint values. Keep them coherent with the
 deck anchors and page intent; they are not required to duplicate existing
-`spec_lock.colors` literals.
+Default `spec_lock.colors` literals or Quick-resolved anchors.
 
 **Hard rule — non-degenerate gradient geometry**: an `objectBoundingBox`
 gradient stroke requires non-zero intrinsic width and height. SVG stroke width
@@ -155,7 +179,7 @@ Filters are native-effect metadata, not a general pixel-filter surface.
 | Concern | Contract |
 |---|---|
 | Definition/reference | Direct `<defs><filter id="...">` child with unique id; direct `filter="url(#id)"` attribute, never inline style |
-| Public targets | `<rect>`, `<circle>`, `<path>`, `<text>` |
+| Public targets | `<rect>`, `<circle>`, `<image>`, `<path>`, `<text>`; an exact outer `<g filter>` is also registered when its sole visual child is one clipped `<image>` |
 | Required primitive | `feDropShadow` or `feGaussianBlur` |
 | Required parameters | Explicit `stdDeviation` on either effect primitive; explicit `dx`, `dy`, and `flood-opacity` on `feDropShadow`; explicit `flood-opacity` on `feFlood`; explicit `slope` on linear `feFuncA` |
 | Accepted helpers | `feOffset`, `feFlood`, `feComposite`, `feMerge`, `feMergeNode`, `feComponentTransfer`, linear `feFuncA` |
@@ -171,14 +195,16 @@ converter-only historical path may also multiply flood-color alpha and
 ancestor group opacity.
 Native export does not preserve filter-region, `in/in2/result`, merge order, or
 composite topology. Other primitives, multiple independent effects, filters on
-`<image>` / `<tspan>` / `<g>` / unsupported targets are forbidden; apply the
+`<tspan>` / ordinary `<g>` / unsupported targets are forbidden; apply the
 effect to supported objects or use explicit layers.
-The sole `<g filter>` exception is the hash-locked
-`data-pptx-part="geometry-preview"` transport in §1.4: it must be a direct child
-of an imported preset object and reference the same filter as that object's one
-hidden geometry carrier. The preview is render-only and never becomes a second
-PowerPoint object; this exception does not authorize filters on ordinary groups.
-PPTX import preserves one registered shape/connector shadow or glow and records
+Special `<g filter>` carriers are limited to the exact single clipped-image
+form in §6.5, the hash-locked
+`data-pptx-part="geometry-preview"` transport in §1.4—a direct child of an
+imported preset object referencing the hidden geometry carrier's filter—and the
+exact imported picture-crop carrier in §6.5, which keeps the effect outside its
+viewport. Neither authorizes ordinary group filters or creates a second
+PowerPoint object.
+PPTX import preserves one registered shape/connector/picture shadow or glow and records
 unsupported object/run effects as import diagnostics instead of exposing a new
 authoring surface. See
 [`conversion.md`](../scripts/docs/conversion.md#import-compatibility-and-recovery-boundary)
@@ -263,8 +289,16 @@ modes, `none` with a mode, and extra tokens are errors; the converter never
 guesses a fallback.
 
 **Hard rule — fit/clip interaction**: a non-trivial clip disables `meet`
-frame-fit. Match the image box to the source ratio or use `slice`. Do not apply
-filters directly to `<image>`.
+frame-fit. Match the image box to the source ratio or use `slice`. Put one §6.4
+filter directly on an unclipped `<image>`. For a clipped picture, keep
+`clip-path` on the `<image>` and put the filter on an exact outer `<g>` whose
+sole visual child is that image. Never combine `filter` and `clip-path` on the
+same `<image>`: SVG would clip the preview effect while PowerPoint would not.
+The carrier may keep object-local id, role, transform, and
+`data-pptx-carrier`. It may own `data-pptx-layer="master|layout"` only when
+the carrier itself is the direct fixed atom. It must not own
+`data-pptx-placeholder`, `data-pptx-binding`, or chart/table replacement
+metadata; keep slot ownership on the outer placeholder boundary.
 
 **Hard rule — picture frames and sources are explicit and decodable**: every
 SVG `<image>` has explicit positive `width`/`height` and exactly one non-empty
@@ -285,7 +319,7 @@ every non-root `<svg>` is the exact wrapper accepted by the shared crop parser:
 |---|---|
 | Outer | Registered `x`, `y`, positive `width`/`height`; four ordinary-decimal unit coordinates in `viewBox`; `preserveAspectRatio="none"`; `overflow="hidden"` |
 | Child | Exactly one direct empty `<image>` with one non-empty `href`/`xlink:href`, `x="0" y="0" width="1" height="1" preserveAspectRatio="none"` |
-| Context | Only root SVG / ordinary visual `<g>` ancestors; outer may add `id`, supported `transform`, registered layer/carrier metadata, and `data-pptx-frame`, `data-pptx-object`, `data-pptx-shape-id`, `data-pptx-shape-name`, `data-pptx-shape-scope` |
+| Context | Only root SVG / ordinary visual `<g>` ancestors; outer may add `id`, supported `transform`, registered layer/carrier metadata, and `data-pptx-frame`, `data-pptx-object`, `data-pptx-shape-id`, `data-pptx-shape-name`, `data-pptx-shape-scope`; an exact imported picture carrier may hold its one §6.4 filter outside this viewport |
 | Shape crop | Exact outer `data-pptx-crop="1"`; authored wrappers put the registered, locally resolving image-only clip on the inner image, using `userSpaceOnUse` geometry matching the visible `viewBox`; legacy imported outer clips remain compatible |
 
 The inner image may add only registered `opacity` and that clip. Quantize the
@@ -300,7 +334,7 @@ and converter share this parser.
 |---|---|---|
 | Directional scrim | Linear rect, darkest beside text | `0%: 0.88; 55%: 0.30; 100%: 0` |
 | Bottom title fade | Vertical rect over lower image | black `0 → 0.72` |
-| Vignette/spotlight | Centered radial rect (`cx=50%`, `cy=50%`, `r=70%`); native center only | black `0 → 0.58` |
+| Vignette/spotlight | Radial rect; place the hotspot with `fx/fy` or `cx/cy` inside the canonical focus circle; outer center/radius remain approximate | black `0 → 0.58` |
 | Brand wash | Directional existing brand-color gradient | `0.80 → 0.10` |
 | Faux glass | Visible fields + diagonal linear panel (`0,0 → 1,1`) + highlight stroke; optional §6.4 elevation | white `0.38 → 0.12`; stroke about `0.55` |
 
@@ -556,8 +590,8 @@ freeform, apply [`native-shape-authoring.md`](./native-shape-authoring.md):
 prefer an editable basic primitive, one exact Office preset, or a Boolean
 materialization. Use a closed cubic path only for an organic silhouette those
 cannot express, polygon/closed path for unmatched ribbons/facets, and an open
-path only for a required data curve, custom route, or locked hand-drawn /
-organic style. Straight relationships use `<line>`; exact stock bends/curves
+path only for a required data curve, custom route, or locked or Quick-resolved
+hand-drawn / organic style. Straight relationships use `<line>`; exact stock bends/curves
 use an authored native Connector preset. Multi-`M` paths remain available for
 exact linework, and a [`shared-standards-core.md`](./shared-standards-core.md)
 §1.2 path clip for unmatched organic pictures. Filled silhouettes end with
@@ -650,9 +684,10 @@ filled `Native-normalized` arrowhead. Example:
 **Hard rule — explicit construction**: these are supported-layer recipes, not
 browser-filter permissions.
 
-**Reference — not a constraint**: use them only when they match the locked style.
-Their curve recipes are explicit exceptions to the Shape-first default above;
-they do not authorize decorative freeforms in another style.
+**Reference — not a constraint**: use them only when they match the locked or
+Quick-resolved style. Their curve recipes are explicit exceptions to the
+Shape-first default above; they do not authorize decorative freeforms in
+another style.
 
 | Intent | Construction | Boundary / fidelity |
 |---|---|---|
@@ -725,24 +760,40 @@ import diagnostics. Resolve those diagnostics before release export; see
 
 ---
 
-### 6.13 Scenario Quick Reference
+### 6.13 Scenario Routing
 
-**Reference — not a constraint**: fidelity remains authoritative in the owning
-subsection; this table only routes scenarios.
+**Reference — not a quota**: this table routes a job diagnosed in §6.1;
+it is not a catalog checklist. Fidelity and the locked or Quick-resolved style
+remain authoritative in the owning subsection.
 
 | Decision family | Scenario routing | Authority / boundary |
 |---|---|---|
-| Elevation | Floating card → resting shadow; one CTA → colored shadow; equal peers/background → flat; maximum predictability → layered shapes; title/metric → glow | §6.4; never body-copy glow |
-| Image/material | Text over image → directional scrim; bottom title → bottom fade; centered hero → vignette; brand wash → brand overlay; glass card → faux glass | §6.5; no backdrop blur |
-| Lines | Draft/optional → dash; process direction → marker; flow/series → gradient stroke; exact grid → multi-subpath path | §6.6 / §6.3 |
-| Text | Removed/former value → line-through; eyebrow → tracking; watermark/outline heading → text outline; list → native bullet | §6.7 |
-| Composition | Move/rotate/mirror → §6.8 transform; repeated static mark → local `<use>` | §6.8; preserve z-order |
+| Paint | Directional or continuous value change → linear gradient; center-weighted focus → radial gradient; subordinate layer or overlap depth → channel alpha; short display emphasis → gradient text; hierarchy already clear → solid paint | §6.2 / §6.3; do not use color variation without a semantic or material job |
+| Elevation | Object visibly above another surface → resting/raised shadow; one focal CTA → restrained colored shadow; equal peers/background → flat; luminous short title/metric → glow | §6.4; one light direction; never body-copy glow |
+| Image/material | Text over image → directional scrim; bottom title → bottom fade; centered hero → vignette; brand unification → brand wash; foreground panel over image → faux glass | §6.5; validate actual contrast; no backdrop blur |
+| Lines | Draft/optional/future → dash; process direction → marker; undirected relationship → solid connector; continuous flow/series → gradient stroke; exact grid → multi-subpath path | §6.6 / §6.3 |
+| Text | Removed/former value → line-through; short eyebrow → tracking; display heading needing a distinct silhouette → outline/gradient; luminous focal metric → glow; list → native bullet | §6.7 / §6.4; body copy may keep semantic decoration, but not decorative gradient/outline/glow/tracking |
+| Composition | Physical tilt or directional energy → rotate; reversible non-text asset facing the wrong way → mirror; repeated exact static mark → local `<use>` | §6.8; preserve z-order; never mirror text, logos, or directional evidence |
 | Hand/print | Annotation → highlighter/curve; ink wash → layered alpha paths; Riso → offset duplicate | §6.11; no turbulence, true bleed, or blend mode |
 | Pixel/halftone | Pixel accent → integer rect grid; sparse screen → circles | §6.11; dense screen → §6.12 |
 | Faceted/layered | Pseudo-3D → 2D facets; paper cut → direct shadow per layer | §6.11; no 3D transform/group composite shadow |
 | Data/freeform | Series depth → area first + line above; unmatched organic silhouette → closed cubic; shaped image → [`shared-standards-core.md`](./shared-standards-core.md) §1.2 path clip | §6.11 / §6.9 |
 | Radial | Donut/gauge → explicit arcs; sunburst → sector per node; position-insensitive ring → shorthand | §6.10; shorthand has 90° preview/native offset |
 | Arrow | Straight relationship → `<line>` + marker; stock bend/curve → native Connector; unmatched custom route → separate calculated arrowhead if needed | §6.10 / §1.1 / native-shape authoring |
-| Unsupported | Dense grain, complex composite, or skew → explicit alternative or baked asset | §6.12; foreground text/data stay editable SVG |
+| Unsupported | Dense grain, complex per-pixel composite, or skew → explicit alternative or baked asset | §6.12; foreground text/data stay editable SVG |
+
+#### Page-Level Stacks
+
+Use the planned page skeleton; when images are active, select it through
+[`image-layout-patterns.md`](./image-layout-patterns.md). Read each stack
+back-to-front and omit every layer without a distinct job.
+
+| Page job | Back-to-front stack | Stop |
+|---|---|---|
+| Cover | Hero visual/field → directional scrim/wash → one explicit opening or contour → native title/accent | Skip contrast treatment when copy is already safe; stop when title and field read as one composition |
+| Divider | Image band or quiet field → restrained wash → recurring geometry → number/title | Reuse the deck language; introduce no new effect family |
+| Evidence / metric | Context image/field → local contrast field → native leaders/labels/metric → optional focus/elevation | Keep claims native; remove atmosphere that weakens evidence |
+| Comparison | Matched visual planes → optional shared wash/divider → matched labels → one difference marker | Keep crop, elevation, and paint symmetric unless asymmetry is the claim |
+| Closing / CTA | Receded field → echoed contour/gradient → native action → optional raised accent | Add no new effect family; keep the action unambiguous and omit a competing image |
 
 ---

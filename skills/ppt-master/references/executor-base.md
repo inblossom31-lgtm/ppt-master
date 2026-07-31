@@ -9,7 +9,7 @@ Always-loaded Executor authority for flat SVG page authoring and behavior shared
 | `pptx_structure.mode: structured` | [`executor-structured.md`](./executor-structured.md) |
 | Any data chart, chart catalog selection, or text-grid table | [`executor-chart.md`](./executor-chart.md) |
 | A page will use a preset pattern fill or evaluate native chart/table replacement | [`native-data-interface.md`](./native-data-interface.md) before deciding eligibility or emitting metadata |
-| Any image/formula; a cited `#<id>` or optional composition recall also triggers the library | [`executor-image.md`](./executor-image.md); conditionally [`image-layout-patterns.md`](./image-layout-patterns.md) |
+| Any image/formula | [`executor-image.md`](./executor-image.md) + [`image-layout-spec.md`](./image-layout-spec.md) + [`image-layout-patterns.md`](./image-layout-patterns.md) + [`svg-image-embedding.md`](./svg-image-embedding.md) |
 | Any `Status: Sourced` web image | [`executor-web-image.md`](./executor-web-image.md), after `executor-image.md` |
 | Effective Speaker Notes outcome is enabled after all SVG pages pass | [`executor-notes.md`](./executor-notes.md) |
 
@@ -27,18 +27,16 @@ Always-loaded Executor authority for flat SVG page authoring and behavior shared
 
 ## 1. Effect Capability Discovery
 
-**Reference — not a constraint**: Scan this menu for treatments that support the locked style and hierarchy. After selecting one, load [`svg-effects.md`](./svg-effects.md) before authoring it — except the cross-page motion row, which loads [`animations.md`](./animations.md) §3.1.
+**Mandatory — select by visual job**: before authoring each page, run the
+already-loaded [`svg-effects.md`](./svg-effects.md) §6.1 procedure and use its
+§6.13 scenario routing. The catalog expands construction vocabulary; it does
+not create an effect quota. Active cross-page continuous action additionally
+loads [`animations.md`](./animations.md) §3.1 before authoring both endpoints.
 
-| Visual need | Available construction |
-|---|---|
-| Color / material | alpha paint, gradients, translucent overlays |
-| Elevation | shadow, glow, explicit highlights |
-| Image integration | scrim, vignette, brand wash, clipping, faux glass |
-| Line / type | dash/cap/join, markers, gradient stroke; tracking, outline, alpha/gradient text |
-| Space / constructed style | transform/reuse, hand-drawn, ink/Riso, halftone, isometric, paper cut; custom curves/arcs only when meaning or the locked style requires them |
-| Continuous action across pages | Paired pages that differ in one property, exported with morph |
-
-**Hard rule — discovery does not expand compatibility**: Follow `svg-effects.md` syntax and fallbacks; unsupported blur, blend, mask, dense texture, or skew remains baked/alternative-only.
+**Hard rule — discovery does not expand compatibility**: Follow
+`svg-effects.md` syntax and fallbacks; unsupported source/backdrop blur, blend
+mode, SVG `<mask>` / per-pixel masking, dense texture, or skew remains
+baked/alternative-only.
 
 **Default — resolve active cross-page geometry here, while pages are still being authored (may override when the deck has no continuous action to express)**: object effects, page transitions, and Morph pair keys are post-processing decisions, but the two visible endpoint states are not. Apply this preparation only when an explicit user motion instruction, an enabled effective Custom Animations outcome, or an existing `animations.json` activates motion; a §IX Motion suggestion alone remains non-operative advice. An active sequence that should read as one continuous action (slide-in, flip, camera push-in, progressive reveal, camera pan) must be authored as consecutive pages in `svg_output/` now. Give each continuing endpoint a compatible direct-root group; source and destination ids or geometry may differ because the later motion stage can bind them explicitly through `animations.json`. A deck that reaches export without both states cannot gain the motion by adding a flag. Adding pages is a §IX roster change and returns to Strategist for Design Spec repair first.
 
@@ -144,6 +142,7 @@ Before drawing each page, look up its entry in `page_rhythm` (key format `P<NN>`
 - **Generation rhythm**: P01 → first-page gate → uninterrupted remaining pages → final gate, in one context without batches or mid-run checker calls.
 - **Fact provenance**: when a §IX page lists `Fact IDs`, resolve each ID from `sources/*.facts.json` and keep the claim/value unchanged. Render a compact source footnote using the source name and a short URL/domain when space permits; when speaker notes are enabled, state the attribution naturally there too. When §IX says `Data class: scenario`, place a visible localized `Scenario data` / `情景数据` label adjacent to the affected KPI/chart and, when notes are enabled, state naturally there that the number is illustrative. Never attach an external fact ID to scenario data or let an unlabeled invented KPI look factual.
 - **Default — stage each page with the style's composition geometry (may override when the content genuinely calls for a plain grid)**: an SVG page is a canvas, not a DOM. Before defaulting to stacked rounded-rect cards or uniform equal columns, pick one page-scale move from the locked visual style's §1 `Composition geometry` (a bleed shape, diagonal split, oversized numeral, orbit rings, …) to stage the page's primary zone. Card grids are one option among many, not the house layout.
+- **Default — vary a planned deck motif instead of cloning it (may omit where it has no page job)**: when §III `Theme` names a cross-page motif, use the current §IX `Layout` to preserve its recognizable contour, direction, material, or relationship while varying scale, crop, density, position, and content interaction by page role. Apply it only where it supports hierarchy or continuity; do not paste identical ornament or invent a second recurring identity.
 - **Containers are structural**: cards and grids express grouping, hierarchy, or capacity, not a house style. Preserve meaningful template frames; restyle radius, fill, stroke, and depth from the active Design Spec and `spec_lock.md`. Chart-catalog adaptation is owned by [`executor-chart.md`](./executor-chart.md); preview effects never override project styling or structural roles.
 - **Reference — prefer semantic geometry over preset stacks**: for relationships such as ascending, converging, breaking through, or stacking, first seek a basic primitive, one exact preset, or a clear Boolean result. Only when none can faithfully express the relationship should one page-specific polygon/path replace a stack of generic arrows.
 - **Reference — create depth with restraint**: use rhythm, spacing, typography, accent bars, and subtle tints before shadows. Reserve lift for a few genuinely floating elements; keep peer grids, dividers, and body containers flat.
@@ -178,7 +177,7 @@ content.
 | Straight relationship / divider / leader | Use `<line>`; add a registered marker only when direction is meaningful. |
 | Exact single-preset match | Call `preset_shape_svg.py render` and paste its complete stdout fragment into the current hand-authored SVG. |
 | Bent / curved relationship exactly expressed by a stock Connector contour, with no required endpoint attachment | Use the matching `bentConnector*` / `curvedConnector*` preset through the helper as an unconnected native Connector shape. |
-| Two or more closed operands whose final semantic object depends on union, cutout, overlap-only coverage, symmetric difference, or fragmentation | Evaluate `shape_boolean_svg.py` at draw time and use it when Boolean materialization is the clearest faithful construction; follow [`native-shape-authoring.md`](./native-shape-authoring.md) §6. |
+| Supported closed-shape / resolvable-text operands need union, cutout, overlap, symmetric difference, or fragmentation | Use `shape_boolean_svg.py` when Boolean materialization is the clearest faithful construction; follow [`native-shape-authoring.md`](./native-shape-authoring.md) §6. |
 | Stock shape that needs a gradient fill/stroke or a pattern fill | Keep ordinary SVG — the helper paints `none` or a solid HEX on both fill and stroke only ([`native-shape-authoring.md`](./native-shape-authoring.md) §5). |
 | Page-specific freeform, organic, branded, icon, data geometry, or relationship contour that primitives, one preset, and Boolean materialization cannot faithfully express | Keep ordinary SVG path/polygon geometry. |
 | Similar-looking contour only | Never infer a preset; continue to the Boolean gate, then use freeform only if no faithful construction exists. |
@@ -223,9 +222,7 @@ redirect, loop, or batch helper output into `svg_output/`.
 
 ### SVG File Naming Convention
 
-Format: `<NN>_<page_name>.svg` (two-digit number from 01; name matches the deck's language and the page title in the Design Spec).
-
-Examples: `01_封面.svg` / `02_目录.svg` / `03_核心优势.svg`; `01_cover.svg` / `02_agenda.svg` / `03_key_benefits.svg`.
+Format: `<index>_<page_name>.svg`. Use one roster-wide zero-padded index width sized for the Design Spec §IX roster, such as `01_cover.svg` through `12_end.svg` or `001_cover.svg` through `120_end.svg`; match the deck language and page title.
 
 ---
 

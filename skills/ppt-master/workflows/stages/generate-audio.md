@@ -10,15 +10,17 @@ This stage is **context-independent**: it reads `notes/*.md` and queries the sel
 
 **Trigger**: In Generate PPTX, run when the effective `Narration Audio` outcome
 in `design_spec.md` §I is `enabled`; a later explicit request first updates that
-outcome and its provenance. In Enhance Native PPTX, run when its confirmed
-enhancement plan has `audio.enabled: true`.
+outcome and its provenance. Quick Generate instead runs when the request or
+current agent's active-context decision selects narration. In Enhance Native
+PPTX, run when its confirmed enhancement plan has `audio.enabled: true`.
 
 **Hard dependency — speaker notes**: Audio requires complete per-slide speaker
 notes. Generate PPTX additionally requires its effective `Speaker Notes`
 outcome to be enabled; Enhance Native PPTX follows its confirmed notes/audio
-plan, where enabling audio also enables notes. Do not enter audio generation
-while the owning route's notes are missing or incomplete; generate and validate
-those notes first, then resume this stage.
+plan, where enabling audio also enables notes. Quick records the same dependency
+in active context. Do not enter audio generation while the owning route's notes
+are missing or incomplete; generate and validate those notes first, then resume
+this stage.
 
 ## When to Run
 
@@ -56,7 +58,7 @@ The AI already knows the deck's language from writing the notes. No detection sc
 
 - Identify the primary language from the notes content: `zh` / `en` / `ja` / `ko` / etc.
 - For mixed-language decks (e.g. Chinese with English technical terms), pick the language the audience will hear most of.
-- For Chinese specifically: pick the locale based on context — `zh-CN` (mainland mandarin, default), `zh-TW` (Taiwanese mandarin), or `zh-HK` (Cantonese). Ask the user only if the project context doesn't make it clear.
+- For Chinese specifically: pick the locale based on context — `zh-CN` (mainland mandarin, default), `zh-TW` (Taiwanese mandarin), or `zh-HK` (Cantonese). Default Generate may ask when context is unclear; Quick chooses the best supported default and continues.
 
 ---
 
@@ -225,7 +227,7 @@ The edge command writes each MP3 and its internal page SRT from the same `edge-t
 
 > Active `animations.json` requires `narration_timing.json`; explicit `--no-animations` bypasses both. Without a sidecar, `narration_sync.py animations` maps groups **positionally** (group N → cue N) and warns when later objects may reveal during an earlier topic. Treat that warning as required repair: author the semantic plan and re-derive.
 
-**Narration animation ownership**: When `animations.json` is consumed, it remains read-only. The audio stage deep-copies it to `narration_animations.json`, preserves transitions, effects, durations, order, and explicit `effect: none`, then changes only the derived trigger/delay values needed for click-free narration playback. The authored `narration_timing.json` maps each animated content group to the SRT cue that speaks about that content. The command may still read an affected SVG page to resolve structural group order when a sparse sidecar cannot identify every effective group; this structural fallback does not replace the semantic-context step and never edits SVG, notes, or `animations.json`. Unmatched groups keep their canonical relative delay.
+**Narration animation ownership**: When `animations.json` is consumed, it remains read-only. The audio stage deep-copies it to `narration_animations.json`, preserves transitions, effects, durations, order, and explicit `effect: none`, then changes only the derived trigger/delay values needed for click-free narration playback. The authored `narration_timing.json` maps each animated content group—not each effect row—to the SRT cue that speaks about that content. For `effects[]`, the cue anchors the group's first active row; later rows keep global order and their relative delay. The command may still read an affected SVG page to resolve structural group order when a sparse sidecar cannot identify every effective group; this structural fallback does not replace the semantic-context step and never edits SVG, notes, or `animations.json`. Unmatched groups keep their canonical relative delay.
 
 **Title timing handoff when canonical animation exists**: preserve the title reveal decision already made by the custom-animation pass. Assign a title group to an SRT cue only when the user's request or the active motion plan explicitly chose `narration-cued`; otherwise leave its `cue` omitted in `narration_timing.json` so it keeps the canonical relative delay from `animations.json`. Do not infer `narration-cued` merely because speaker notes mention the title.
 
