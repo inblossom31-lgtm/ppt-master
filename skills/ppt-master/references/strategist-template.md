@@ -4,13 +4,13 @@
 
 Conditional extension for applying an installed Brand/Style/Layout/Deck workspace to Stage 2 recommendations and the execution lock.
 
-**Trigger**: Load only after Stage 1 is confirmed, when Generate Step 3 validated a library or explicit workspace path and either installed it into `<project_path>/templates/` or confirmed that the target project is consuming it in place. Bare template names, style words, and free-design projects do not trigger this module.
+**Trigger**: Load only after Stage 1 confirms a library or explicit workspace selection and the post-confirmation apply stage either installs it into `<project_path>/templates/` or confirms that the target project is consuming it in place. Bare template names, style words, and free-design projects do not trigger this module.
 
 ---
 
 ## 1. AI-Authored Template Application Plan
 
-**Template vs preset**: A style mention and a Style workspace are different inputs. Bare names and style words remain interpretive input and never resolve to a local path; only a selected and installed workspace activates the rules below. Its fused `<project_path>/templates/design_spec.md` is the template-design source. Treat `kind: style` or a fused provenance entry for `style` as an active Direction / method segment. Whether a source root was labelled `library` or `explicit` is installation provenance only and never affects Stage-2 precedence.
+**Template vs preset**: A style mention and a Style workspace are different inputs. Bare names and style words remain interpretive input and never resolve to a local path; only a selected and installed workspace activates the rules below. Every installed `<project_path>/templates/design_spec.<kind>.<id>.md` is a template-design source; read all of them. The presence of a `design_spec.style.*.md` file is what marks an active Direction / method segment. Whether a source root was labelled `library` or `explicit` is installation provenance only and never affects Stage-2 precedence.
 
 **Legacy template boundary**: A Layout/Deck template containing `native_structure.json`, `source_template.pptx`, missing root Master identity, direct atomic placeholders, or old `baseline` / `preserve` / distillation metadata is not a Generate Step 3 input. Create a current workspace through [`create-template`](../workflows/create-template.md), preferably from the original PPTX when native topology matters. Brand and Style are intentionally roster-free; never reject either for omitting SVG or Master identity. Do not mutate the input in place.
 
@@ -21,8 +21,8 @@ Conditional extension for applying an installed Brand/Style/Layout/Deck workspac
 Immediately before authoring the Stage-2 solution, load each relevant template
 resource once per path + SHA and inspect:
 
-- every installed `design_spec.md`; for Layout/Deck only, also inspect the actual Page Roster and relevant SVG prototypes;
-- the resolved Identity, Structure, Reusable Application Context, and Direction / method segment owners from the Step-3 fusion receipt;
+- every installed `design_spec.<kind>.<id>.md`; for Layout/Deck only, also inspect the actual Page Roster and relevant SVG prototypes;
+- the Identity, Structure, Reusable Application Context, and Direction / method segment owners, resolved here from the installed set under [`apply-template-workspace`](../workflows/stages/apply-template-workspace.md) §5;
 - the confirmed current communication contract, source obligations, planned page count, and content shape of every planned page;
 - the user's natural-language instructions, including any page names/numbers or elements they explicitly require.
 
@@ -74,7 +74,7 @@ When the communication contract conflicts with the workspace, choose and state t
 
 ## 3. Structured Lock Planning
 
-For Style-only or Style + Brand, write `pptx_structure.mode: flat` plus `template_reuse_scope: style`; omit `template_adherence` and every structured mapping section. When Style is fused with Layout or Deck, it changes only Direction / method and does not change the non-Style capability label or force flat/structured routing. Derive reuse scope from the selected Layout/Deck application plan; a literal `mirror` plan is compatible only when the Style segment requires no visual or topology change.
+For Style-only or Style + Brand, write `pptx_structure.mode: flat` plus `template_reuse_scope: style`; omit `template_adherence` and every structured mapping section. When a Style is installed alongside Layout or Deck, it changes only Direction / method and does not force flat/structured routing. Derive reuse scope from the selected Layout/Deck application plan; a literal `mirror` plan is compatible only when the Style segment requires no visual or topology change.
 
 For `mirror` / `layout`, write `pptx_structure.mode: structured` plus `template_adherence: strict|adaptive`; mirror always writes `strict`. Do not write legacy `baseline`, `template`, `preserve`, `layout_strategy`, or Layout-kind rows.
 

@@ -2,19 +2,20 @@
 
 This file is the project entry point for general AI agents.
 
-**You MUST read [`skills/ppt-master/SKILL.md`](skills/ppt-master/SKILL.md) before any PPT generation task or repo modification.** It owns global execution discipline and points to the route selector; after routing, the selected route authority owns its steps, gates, and commands. The rest of this file only points to where related material lives.
+**You MUST read [`skills/ppt-master/SKILL.md`](skills/ppt-master/SKILL.md) before any PPT generation task or repo modification.** It owns global execution discipline and points to the route selector; after routing, the selected runtime authority owns its steps, gates, and commands. The rest of this file only points to where related material lives.
 
 ## Project Overview
 
-PPT Master turns source material into natively editable DrawingML PPTX. Generate owns the default Strategist → Image_Generator → Executor pipeline and an explicit Quick profile without a separate strategy/confirmation phase.
+PPT Master turns source material into natively editable DrawingML PPTX. Generate contains two mutually exclusive runtime paths: the default Strategist → Image_Generator → Executor pipeline and the self-contained Quick profile without a separate strategy/confirmation phase. Beautify selects between them from explicit Quick intent.
 
 **Route selection authority**: [`skills/ppt-master/workflows/routing.md`](skills/ppt-master/workflows/routing.md) owns the four top-level artifact routes: Generate PPTX, Create Template, Fill Native PPTX, and Enhance Native PPTX. Child workflows, profiles, stages, and governance documents refine one selected route; they are not competing top-level routes.
 
-- Topic-only or fact-insufficient inputs run [`topic-research`](skills/ppt-master/workflows/stages/topic-research.md) in Generate Step 1; facts only, no images.
+- Topic-only or fact-insufficient inputs run [`topic-research`](skills/ppt-master/workflows/stages/topic-research.md) inside the selected Generate profile's source intake; facts only, no images.
+- Default Generate prepares template candidates internally in Step 3, then confirms the communication contract and free-design/template choice together in Stage 1. Template content stays unread until that confirmation; selected roots are installed before template-aware Stage 2. Quick skips this interaction.
 - Raw PPTX template plus new material/topic routes to [`template-fill-pptx`](skills/ppt-master/workflows/template-fill-pptx.md), not the SVG pipeline.
-- Raw PPTX cannot be consumed as a Generate Step 3 SVG template; run [`create-template`](skills/ppt-master/workflows/create-template.md) first and return with the generated template workspace root. Never add Master/Layout structure directly to an existing PPTX/SVG; generate new structured SVG pages from the workspace.
+- Raw PPTX cannot be consumed as a Generate template workspace; run [`create-template`](skills/ppt-master/workflows/create-template.md) first and return with the generated workspace root as a Stage-1 candidate. Never add Master/Layout structure directly to an existing PPTX/SVG; generate new structured SVG pages from the workspace.
 - Explicit quick/fast or skip-strategy generation may use [`quick-generate`](skills/ppt-master/workflows/profiles/quick-generate.md): prepare sources/resources as needed, decide without interaction, omit Strategist/confirmation/spec/lock, hand-author `svg_output/`, pass its lockless final checker, and export.
-- PPTX beautify is a strict 1:1 main-generation [`profile`](skills/ppt-master/workflows/profiles/beautify-pptx.md), not a separate route; any split/merge/drop/reorder uses the default main-pipeline policy.
+- PPTX beautify is a strict 1:1 Generate [`profile`](skills/ppt-master/workflows/profiles/beautify-pptx.md), not a separate route. Explicit Quick intent uses the Quick runtime; otherwise it uses Default. Any split/merge/drop/reorder disables Beautify and returns to ordinary Generate in the selected runtime.
 - Finished PPTX native enhancement uses [`native-enhance-pptx`](skills/ppt-master/workflows/native-enhance-pptx.md) and must not enter SVG regeneration.
 - [`visual-review`](skills/ppt-master/workflows/stages/visual-review.md), [`customize-animations`](skills/ppt-master/workflows/stages/customize-animations.md), and [`generate-audio`](skills/ppt-master/workflows/stages/generate-audio.md) are supporting stages; their trigger rules remain explicit/conditional.
 
@@ -39,7 +40,7 @@ PPT Master turns source material into natively editable DrawingML PPTX. Generate
 
 ## Command Quick Reference
 
-Convenience summary only — route selection starts in [`SKILL.md`](skills/ppt-master/SKILL.md); the full SVG-generation workflow is [`generate-pptx.md`](skills/ppt-master/workflows/generate-pptx.md).
+Convenience summary only — route selection starts in [`SKILL.md`](skills/ppt-master/SKILL.md); Beautify uses [`quick-generate.md`](skills/ppt-master/workflows/profiles/quick-generate.md) only when Quick is explicit, otherwise [`generate-pptx.md`](skills/ppt-master/workflows/generate-pptx.md).
 
 ```bash
 # Source content conversion
