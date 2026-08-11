@@ -254,6 +254,7 @@ Then load only the extra role modules triggered by the current plan:
 | Deterministic trigger | Additional Strategist reference |
 |---|---|
 | Stage 1 is confirmed and its template choice installed a selected Brand/Style/Layout/Deck workspace into this project | `references/strategist-template.md` before Stage 2 |
+| The confirmed Stage-1 `delivery_context` identifies recorded/self-running/video delivery, or input is an explicit final/literal narration script | `references/video-design.md` before the three Stage-2 whole solutions and page roster |
 | The confirmed Stage 2 `image_usage` contains a source other than `none`, the user supplied an explicit non-`none` image constraint, or formula-worthy content activates formula planning | `references/image-layout-spec.md` + `references/image-layout-patterns.md` before production detail, formula resources, or §VIII |
 
 After Stage 1 and template handoff, load `strategist-image.md` plus only the
@@ -448,6 +449,7 @@ python3 ${SKILL_DIR}/scripts/analyze_images.py <project_path>/images
 **Output**:
 - `<project_path>/design_spec.md` — complete human-readable design narrative and durable confirmed production state
 - `<project_path>/spec_lock.md` — machine-readable stable execution anchors/routing, authored after conditional review approval
+- `<project_path>/notes/total.md` — only when the prepared final narration branch is active; frozen verbatim production input
 
 For a new project, use the reference-first whole-document sequence:
 
@@ -459,6 +461,13 @@ For a new project, use the reference-first whole-document sequence:
 
 Final state → initial Design Spec mismatch, approved Design Spec/context → lock mismatch, or an unapplied revision blocks despite schema validity. `validate` does not prove fidelity. Repair from retained confirmation before refinement; during it, preserve unaffected values and apply explicit revisions. After approval, derive the lock from that Design Spec/context. Resume/refine edits existing files, never scaffolds. Fresh recovery alone may reread persisted final evidence once.
 
+**Prepared final narration branch**: follow `video-design.md` §1 and §3 when an
+explicit final/literal script will become notes or generated audio. Segment it
+by semantic scene during Stage 2; §IX gives each segment a supporting visible
+state and §X records its source/verbatim policy. After Gate 2, before Step 5 or
+split handoff, write the exact segments once to `notes/total.md`; split them only
+in Step 7.1. This is frozen production input, not a third planning artifact.
+
 **✅ Internal checkpoint — Phase deliverables complete**: facts read; confirmation consumed once; final Stage-2 production fields resolved (formula policy, generation mode, refine-spec, proactive choices, and conditional AI path); Design Spec passed Gate 1; enabled refinement approved; lock derived from it; split handling resolved; communication and every §IX `Audience move` validated. Do not print this checklist; auto-proceed.
 
 ---
@@ -467,7 +476,7 @@ Final state → initial Design Spec mismatch, approved Design Spec/context → l
 
 🚧 **GATE**: Step 4 complete; `<project_path>/design_spec.md` and `<project_path>/spec_lock.md` both exist. If either required artifact is missing, stop before any acquisition or generation and follow [`failure-recovery.md`](governance/failure-recovery.md) §3. Formula rows already have `Acquire Via: formula` and status `Rendered` or `Needs-Manual`.
 
-> **Trigger**: At least one row in the resource list has `Acquire Via: ai`, `web`, and/or `slice`. A prepared-user-only plan contains `user / Existing` rows and skips this entire step; `formula` and `placeholder` rows also do not trigger acquisition. A permitted but unused image source creates no row and does not trigger acquisition. If §VIII omits a source, asset, or page role that `image_notes` explicitly requires, the Design Spec is incomplete; return to Step 4 Gate 1, repair it from the retained final state, and re-author the affected lock anchors from context. Do not reopen `result.json` during this check.
+> **Trigger**: At least one row in the resource list has `Acquire Via: ai`, `web`, and/or `slice`, or any row is a pending prepared derivative declared by `Reference: Derived from <canonical bare filename>; treatment=...`. A prepared-user-only plan skips this step only when it has no derivative to materialize; `formula` and `placeholder` rows alone do not trigger it. A permitted but unused image source creates no row and does not trigger acquisition. If §VIII omits a source, asset, or page role that `image_notes` explicitly requires, the Design Spec is incomplete; return to Step 4 Gate 1, repair it from the retained final state, and re-author the affected lock anchors from context. Do not reopen `result.json` during this check.
 
 **Failure recovery**: stop/continue behavior for AI/web/slice/image-readiness failures is defined in [`workflows/governance/failure-recovery.md`](governance/failure-recovery.md). This Step keeps the acquisition procedure.
 
@@ -479,8 +488,9 @@ Read references/image-base.md
 
 Then **lazy-load the path-specific reference** for each row that actually needs it:
 
-| Acquire Via | Load reference (only if any such row exists) | Run |
+| Row kind / Acquire Via | Load reference (only if any such row exists) | Run |
 |---|---|---|
+| Prepared derivative | `references/image-base.md`; add `references/image-generator.md` §4.4 only for registered layers | after its named canonical source reaches a usable terminal state, run `python3 ${SKILL_DIR}/scripts/image_treat.py ...` for the declared per-pixel treatment or the existing §4.4 preparation path |
 | `ai` | `references/image-generator.md` | write `<project_path>/images/image_prompts.json`, then follow `image-generator.md §7 Path Selection` (`image_gen.py --manifest` is **Path A only**) |
 | `web` | `references/image-searcher.md` | `python3 ${SKILL_DIR}/scripts/image_search.py ...` (≥2 web rows → `--batch images/image_queries.json`) |
 | `slice` | `references/image-generator.md` §4.3 | derived — **after** the parent `ai` sheet row is `Generated`, run `python3 ${SKILL_DIR}/scripts/slice_images.py <project_path>/images/<sheet>.png --grid RxC --names ... --trim --alpha` (see workflow step 2.5) |
@@ -488,7 +498,7 @@ Then **lazy-load the path-specific reference** for each row that actually needs 
 
 A deck with only `ai` rows never loads `image-searcher.md`; a deck with only `web` rows never loads `image-generator.md`. A mixed deck loads both, processes each row through its own path, and writes both `image_prompts.json` and `image_sources.json`.
 
-> ⚠️ **In-pipeline ai rows MUST use the manifest contract** — even when only 1 ai row exists. Always write `images/image_prompts.json` first and render `image_prompts.md` with `image_gen.py --render-md`. Then execute the confirmed path from `image-generator.md §7`: `image_gen.py --manifest` is **Path A only**; `host-native` is **Path B** and MUST skip `--manifest`; `manual` writes the prompts and stops for external generation. The positional form (`image_gen.py "prompt" ...`) is reserved for **out-of-pipeline one-off testing / single-image fixups**, except for the already-planned registered subject/base derivation in `image-generator.md` §4.4. That narrow exception keeps both final rows in the resource authority and operational sidecar; it does not authorize unrelated in-pipeline generation outside the manifest contract.
+> ⚠️ **In-pipeline ai rows MUST use the manifest contract** — even when only 1 ai row exists. Always write `images/image_prompts.json` first and render `image_prompts.md` with `image_gen.py --render-md`. Then execute the confirmed path from `image-generator.md §7`: `image_gen.py --manifest` is **Path A only**; `host-native` is **Path B** and MUST skip `--manifest`; `manual` writes the prompts and stops for external generation. The positional form (`image_gen.py "prompt" ...`) is reserved for **out-of-pipeline one-off testing / single-image fixups**, except for the already-planned registered reconstruction-group derivation in `image-generator.md` §4.4. That narrow exception keeps every final member in the resource authority and operational sidecar; it does not authorize unrelated in-pipeline generation outside the manifest contract.
 
 > ⚠️ **web path — batch multiple rows**: when ≥2 rows are `Acquire Via: web`, write all queries into `images/image_queries.json` and run `image_search.py --batch` once (concurrent acquisition, status written back), instead of one CLI call per row. A single web row may use the positional single-query form. See [image-searcher.md](../references/image-searcher.md) §5.
 
@@ -500,11 +510,12 @@ A deck with only `ai` rows never loads `image-searcher.md`; a deck with only `we
 
 Workflow:
 
-1. Extract all resource rows from the design spec and group them by `Acquire Via`; rows with `Status: Pending` or `Status: Failed` and `Acquire Via ∈ {ai, web, slice}` must all reach a terminal state before Executor starts
+1. Extract all resource rows from the design spec. First separate rows whose `Reference` starts `Derived from <canonical bare filename>; treatment=` so they cannot re-enter ordinary ai/web/slice acquisition; reject source/output equality, a derivative parent, chains, cycles, or self-reference; then group canonical rows by `Acquire Via`. Every Pending/Failed canonical acquisition row and Pending derivative must reach a terminal state before Executor starts.
 2. Generate prompts (ai rows) and/or run search (web rows) per [image-base.md](../references/image-base.md) §3 dispatch table
 2.5. **Slice any spot-illustration sheets (only if `slice` rows exist).** For each generated `ai` **sheet** row, run `slice_images.py` (grid + the element `--names` matching the `slice` rows, `--trim --alpha`) so every element file lands in `images/`; mark each `slice` row `Generated`. A sheet still in `Needs-Manual` cannot be sliced — leave its `slice` rows `Needs-Manual` and surface them at the Step 7 readiness gate. Contract: [image-generator.md](../references/image-generator.md) §4.3.
-3. Verify every row reaches a terminal status: `Generated` (ai success / sliced element), `Sourced` (web success), or `Needs-Manual`. `Failed` is not a terminal status: it means the current run did not generate that item, but the item remains retryable. On `auto`, follow the owning fallback chain. On an explicitly confirmed `api` or `host-native` path, retry only that path; if it still fails, mark the row `Needs-Manual` without switching to another automated provider.
-4. Re-derive image facts now that web / AI / sliced files are in the folder — `python3 ${SKILL_DIR}/scripts/analyze_images.py <project_path>/images` — so `analysis/image_analysis.csv` reflects every acquired image **including the sliced elements** (real measured sizes) before the Executor lays them out. Image facts are regenerated on use, never a stale store (see Step 4's image-facts note).
+2.6. **Materialize planned prepared derivatives.** After each named canonical source reaches a usable terminal state, preserve it and write the separately named derivative only from its declared treatment. Use `image_treat.py` for per-pixel blur, desaturation/grayscale, duotone, brightness, or contrast; that row inherits the canonical `Acquire Via` and terminal class. Use `image-generator.md` §4.4 only for registered clean-base/layer work; a supplied final asset is `user / Existing`, while generated/reconstructed output remains `ai / Generated`. A standalone cutout must be prepared RGBA, a flat-key slice, or supplied by the active host; otherwise mark it `Needs-Manual`. Do not present `image_treat.py` as photo background removal. Do not bake crop/clip, rotation/mirror, opacity, frame, shadow, scrim/wash, vignette, or overlap into a bitmap. Any derivative of a web source copies that source's license/attribution record to the new filename. A parent without a usable status leaves the child `Needs-Manual`.
+3. Verify every processed acquisition/derivative row reaches its source-class terminal status under [`svg-image-embedding.md`](../references/svg-image-embedding.md); no `Pending`/`Failed` remains. On `auto`, follow the owning fallback chain. For confirmed `api` or `host-native`, retry only that path, then mark unresolved rows `Needs-Manual` without switching provider.
+4. Re-derive image facts after canonical acquisition, slicing, and prepared derivatives are final — `python3 ${SKILL_DIR}/scripts/analyze_images.py <project_path>/images` — so `analysis/image_analysis.csv` reflects every image the Executor may place. Image facts are regenerated on use, never a stale store (see Step 4's image-facts note).
 
 **✅ Internal checkpoint — acquisition complete**: verify conditional AI/web sidecars, all required slice outputs, terminal status for every resource row, and a refreshed `image_analysis.csv`. Do not print this checklist. On success, auto-proceed under the compact status rule above.
 
@@ -529,7 +540,13 @@ Workflow:
 
 **Page content**: §IX is preferred wording and semantic authority. Use it when it works; adapt it when presentation benefits while preserving intent, facts, and explicit literal requirements. Read sources only to verify requested evidence; return incomplete blocks to Step 4 instead of enriching them during execution.
 
+**Prepared final narration**: when §X records a literal script, read the frozen
+`notes/total.md` once before P01 and design each visible state/semantic group
+around its exact segment; never edit or pad it.
+
 **Planning context**: follow [`executor-base.md`](../references/executor-base.md) §2.1. Reuse the complete Design Spec and lock in an unchanged, uncompacted context. Fresh/resumed/restarted, compacted/summary-only, or externally/unknown changed execution reads both once and reloads triggered inputs. For a local question, consult the retained lock first, then only the owning Design Spec fragment; do not poll files merely to prove validity.
+
+**Scheduled lock re-read (Default Generate only)**: when another page follows, re-read `spec_lock.md` once after P05/P10/P15/… per [`executor-base.md`](../references/executor-base.md) §2.1.
 
 **Artifact ownership**: `svg_output/` is the author source, `svg_final/` is derived, and image facts come from the regenerated `analysis/image_analysis.csv`; see [`references/artifact-ownership.md`](../references/artifact-ownership.md).
 
@@ -560,7 +577,8 @@ Keep the core's shared visual-quality defaults and `svg-effects.md` §6.1 Visual
 | Actual row × column fact grid | `executor-table.md` |
 | Used preset pattern fill, or independent Chart/Table with §IX `<object-key>=yes` | `native-data-interface.md` before that object |
 | `spec_lock.md images` / §VIII has an image/formula row, or the template has bundled images | `executor-image.md` + `image-layout-spec.md` + `image-layout-patterns.md` + `svg-image-embedding.md` |
-| At least one placed image has `Status: Sourced` | `executor-web-image.md` after the image branch |
+| At least one placed image is `Status: Sourced` or its filename has an `image_sources.json` record | `executor-web-image.md` after the image branch |
+| §I records recorded/self-running/video delivery, or §X records a final/literal narration script | `video-design.md` before the first SVG; retain it through notes/motion handling |
 | All SVG pages and SVG quality gates are complete, and the effective Speaker Notes outcome in `design_spec.md §I` is enabled | `executor-notes.md` before generating speaker notes |
 
 No branch is loaded by analogy. For each page, after §IX content/communication
@@ -661,10 +679,13 @@ python3 ${SKILL_DIR}/scripts/svg_quality_checker.py <project_path> --stage final
 
 **Logic Construction Phase (conditional)**: after the SVG quality gate passes,
 when the effective Speaker Notes outcome in `design_spec.md §I` is enabled, load
-[`executor-notes.md`](../references/executor-notes.md), ground each page's
-narration in all information-bearing content in its final SVG, and generate
-speaker notes → `<project_path>/notes/total.md`. When the outcome is `disabled`,
-do not load the notes branch and do not require or create `notes/total.md`.
+[`executor-notes.md`](../references/executor-notes.md). When the prepared final
+narration branch already created `notes/total.md`, validate its exact segments
+against every information-bearing final SVG group and repair the visual page or
+upstream plan on mismatch; never rewrite the script. Otherwise ground each
+page's narration in its final SVG and generate complete speaker notes →
+`<project_path>/notes/total.md`. When the outcome is `disabled`, do not load the
+notes branch and do not require or create `notes/total.md`.
 
 **✅ Internal checkpoint — execution complete**: verify live preview timing,
 the P01 method gate, uninterrupted remaining-page generation, consolidated
@@ -692,6 +713,10 @@ above.
 > reference. Strategist owns the communication purpose; Executor owns exact
 > native effects, options, order, timing, and whether a non-literal suggestion
 > should simplify to `none`. Never add motion for coverage or variation.
+> Sound is not a Strategist resource: do not select or sync it during Steps
+> 3–6 and never write a sound id/path into `design_spec.md` or `spec_lock.md`.
+> Any optional cue is selected only after the visual motion solution is final,
+> under [`animations.md`](../references/animations.md) §2.2.
 
 ---
 
@@ -752,6 +777,16 @@ Animations disable keeps the sidecar and appends `-a none`; final Stage-2 `false
 does neither. Only explicit all-motion disable uses `--no-animations`.
 Otherwise do not mix deck-wide flags with a sidecar. With no motion input or
 sidecar, preserve `fade` / `none`.
+
+After the transition/object-motion solution above is final, perform the
+optional sound pass in [`animations.md`](../references/animations.md) §2.2.
+If no concrete cue is selected, do not create `<project_path>/sounds/` or copy
+anything from the global library. If a cue is selected, run `sound_sync.py`
+for only its namespaced id(s), reference the resulting project-relative `.wav`
+path from the sidecar, and validate the sidecar before export. A
+transition-sound-only choice may create a sparse `animations.json` here without
+activating object choreography; the exporter never reads
+`templates/sounds/` directly.
 
 **Success criterion**: The command exits successfully and produces:
 
