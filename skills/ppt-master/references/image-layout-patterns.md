@@ -1,6 +1,6 @@
-# Image and Formula Layout Pattern Catalog
+# Image Layout Pattern Catalog
 
-Compact composition vocabulary for prepared images, illustrations, and rendered formula assets. Use the patterns as options, not as a checklist.
+Compact composition vocabulary for prepared images and illustrations. Use the patterns as options, not as a checklist.
 
 ---
 
@@ -233,17 +233,16 @@ If motion is enabled, [`animations.md`](./animations.md) owns its implementation
 | Scene-backed evidence or metrics | `#P2-01` / `#P2-05` + `#M2-01` or `#M2-03`; let the image carry context and native SVG carry information |
 | One selected region needs explanation | Use `#P2-03` for an outline and caption on one picture; use `#P2-04` when a second same-source picture must magnify the region |
 | Several sources should read as one object | `#P3-21` + restrained `#M3-01`, or `#P3-20` + a native text/color cell |
+| Several mixed-ratio photos need one visual rhythm | Use `#P3-06` + `#M1-01` + `#M2-01`; repeat equal-size parallelogram carriers on one horizontal `vector` with fixed positive advance and alternating transverse offsets, fill-crop each upright bitmap, overlay each carrier with a same-contour directional gradient, and keep labels native |
 | One continuous scene should span detached shapes | `#M1-10` + optional `#M3-05`; combine `#P1-08` for a triangular image-and-copy split, and keep one-picture topology |
 | Same-source windows must remain independent | `#M1-11`; add `#C2-01` or `#C2-02` only when consecutive pages use the relationship |
 | A prepared subject should re-layer over its source | `#A2-03`; keep the base and cutout registered, and insert a native middle layer only when it has a distinct job |
 | A busy visual needs one focal region | `#M2-05`, or prepared `#A3-01` / `#A3-03` when a native contrast treatment is insufficient |
 | A visual argument should build across pages | `#C1-01` + `#P2-01` or `#P2-05`; keep the underlying source and frame stable |
-| Formula or technical figure needs explanation | `#P1-12` + `#P2-07` / `#P2-03`; use `#P2-04` only when a second cropped detail is useful, and keep explanatory labels native |
+| Technical figure needs explanation | `#P1-12` + `#P2-07` / `#P2-03`; use `#P2-04` only when a second cropped detail is useful, and keep explanatory labels native |
 
 **Registration boundary**: registration-dependent effects succeed only when their declared coordinate relationship remains exact. Preserve registration for `#M1-10`, `#A2-02`, `#A3-01`, `#M1-08`, `#A2-03`, `#A3-02`, `#A3-03`, and `#M1-11`; `#M1-09` is the intentional exception.
 
 **Source-correspondence boundary**: `#P2-04` reuses one exact source but intentionally changes the detail crop, scale, and placement; preserve the selected-region correspondence instead of forcing page-space registration.
-
-**Formula placement**: treat a rendered formula as a prepared visual asset. Use whitespace patterns such as `#P1-11` or `#P1-12` for isolated derivations, `#P1-07`, `#P2-07`, `#P2-03`, or `#P2-04` for annotated formulas, and `#P3-04` or `#P3-03` for comparisons; keep editable explanatory text native.
 
 All compatibility details remain owned by [`shared-standards-core.md`](./shared-standards-core.md) and its routed references.
