@@ -205,8 +205,12 @@ python3 scripts/preset_shape_svg.py render rightArrow --id process-arrow --frame
 The helper never writes a page or project file. Select one exact semantic
 stock-shape match, inspect the emitted fragment, and insert it into the
 hand-authored SVG with the normal patch workflow. Its project-authored output
-is one compact atomic `<g>` with direct registry-generated visible paths;
-quality check and export rerender the registry instead of relying on a hidden
+is one compact atomic `<g>` with direct registry-generated visible paths. When
+one effect is justified, optional `--filter-id softShadow` references one
+existing direct page-level filter under the shared shadow/glow contract and
+applies it once to a shape preset. Connector presets do not accept that option.
+The helper does not create the filter definition.
+Quality check and export rerender the registry instead of relying on a hidden
 carrier, preview wrapper, or stored preview fingerprint. PPTX import and
 round-trip SVGs deliberately keep their expanded carrier/preview evidence and
 are not rewritten into this authored form. Keep ordinary rectangles, ellipses,
@@ -310,8 +314,11 @@ python3 scripts/analyze_images.py <project_path>/images
 
 Generated-deck formulas do not use an image command. Author a native formula
 marker in the page SVG; `svg_to_pptx.py` compiles its LaTeX metadata to editable
-PowerPoint OMML. The retained `latex_render.py` utility is standalone legacy
-rasterization only and is not connected to either Generate profile.
+PowerPoint OMML. Forward compilation covers the explicitly documented Microsoft
+365 LaTeX and mhchem input profiles and fails closed outside them; it does not
+implement OMML-to-LaTeX build-down. The retained `latex_render.py` utility is
+standalone legacy rasterization only and is not connected to either Generate
+profile.
 
 Repository update:
 

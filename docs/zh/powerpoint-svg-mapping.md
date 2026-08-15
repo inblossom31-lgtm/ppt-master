@@ -98,7 +98,7 @@ PowerPoint 意图
 | 已物化的合并形状结果 | `shape_boolean_svg.py` 输出的普通 `<path>`；“拆分”返回多个同级 path | 每个返回 path 对应一个带 `a:custGeom` 的 `p:sp` | `Native-normalized`；回导为最终自由形状几何，不保留可重放的操作历史 | 接受受支持的闭合几何，或字体 face 可精确解析的隐式从左到右水平直接文本；文本会转为字形几何，第一个 source 决定样式与顺序，且不输出 clip、mask 或显式 fill rule |
 | 多边形 | `<polygon>` | 闭合自定义几何 | `Native-normalized` | points 必须有限且合法 |
 | 折线 | `<polyline>` | 开放自定义几何 | `Native-normalized` | points 使用与其他生成几何相同的有限、已登记语法 |
-| PowerPoint 预设形状 | 由 registry 生成的 compact `<g>`，由该组承载 preset 意图与基础 paint，并直接包含可见 `<path>` 子元素 | 一个可编辑 preset `p:sp` | preset 身份与 adjustment 可以经导入/导出保留 | 质检与导出动态重渲染 registry；规范创作表达不含隐藏 carrier、preview wrapper 或已存储 preview hash |
+| PowerPoint 预设形状 | 由 registry 生成的 compact `<g>`，承载 preset 意图与基础 paint，可选直接引用一个已登记的阴影/发光 filter，并直接包含可见 `<path>` 子元素 | 一个可编辑 preset `p:sp`，最多一个原生效果写入 `p:spPr/a:effectLst` | preset 身份与 adjustment 可以经导入/导出保留；效果遵循下方共享保真度行 | 质检与导出动态重渲染 registry；创作型 preset 的 filter 引用仅适用于 shape，规范创作表达不含隐藏 carrier、preview wrapper 或已存储 preview hash |
 | 导入的预设形状 | 含隐藏原生 carrier、可见 preview 证据与新鲜度 metadata 的 expanded 导入/往返组 | payload 合法且未改变时重新接入 preset | 在导入合同内为 `Native-stable` | 不支持的 preset 保留为显式诊断 fallback，不猜测几何 |
 | 动作按钮形状 | compact authored `actionButton*` preset 组 | 仅生成可见 preset 几何 | 形状几何可往返 | 不创建单击动作、导航目标或超链接 |
 | 组 | `<g>` | `p:grpSp`，或对特殊 carrier 执行文档化的 flatten/collapse | 分组内容可重建为 `<g>` | 结构 atom 与 placeholder 合同优先于普通分组 |
@@ -205,16 +205,20 @@ PowerPoint 原生 Chart/Table 对象是可选功能。默认导出保留 SVG fal
 
 | PowerPoint 功能 | 项目表达 | PPTX 结果 | 兼容性 | 校验边界 |
 |---|---|---|---|---|
-| 可编辑块级公式 | 一个带显式边界、在 `<metadata type="application/json">` 中保存源 LaTeX、并含可见 SVG 预览子元素的 `<g data-pptx-replace-with="formula">` | 含 `a14:m > m:oMathPara > m:oMath` 的 PowerPoint 文本 shape | PowerPoint 2010+ | 矩阵、多行推导等独立高结构公式使用块级合同；不支持的输入直接失败 |
-| 可编辑行内公式 | 普通文本 run 中的叶子 `<tspan data-pptx-inline-formula="无定界符 LaTeX">preview text</tspan>` | 同一 DrawingML `a:p` 保留前后 run，并插入 `a14:m > m:oMath` | PowerPoint 2010+ | 只允许非空直接预览文本；禁止子元素、`x/y/dx/dy`、结构化 placeholder / Master / Layout 归属、保留的导入 `txBody` 或原生替换祖先 |
+| LaTeX 输入档位 | 规范 marker 源不写外层定界符；也接受一对完整的 `$...$`、`$$...$$`、`\(...\)` 或 `\[...\]` | 锁定的 Microsoft 365 2606 / Mac 16.110 档位中所有明确点名的输入，以及 2605 / 16.109 mhchem 档位，均编译为可编辑 OMML | 档位锁定到这些 Microsoft 文档版本；产出的 OMML 仍保持 PowerPoint 2010+ 包目标。仓库验证覆盖编译器、OMML 与包结构，不等同于完整的 Microsoft 365 UI 认证 | 保留文档明确规定的原生归一化；未知或明确不支持的输入直接失败，不把 LaTeX 字面量漏进页面 |
+| 可编辑块级公式 | 一个带显式边界、在 `<metadata type="application/json">` 中保存源 LaTeX、并含可见 SVG 预览子元素的 `<g data-pptx-replace-with="formula">` | 含 `a14:m > m:oMathPara > m:oMath` 的 PowerPoint 文本 shape | 见输入档位行 | 矩阵、多行推导等独立高结构公式使用块级合同 |
+| 可编辑行内公式 | 普通文本 run 中的叶子 `<tspan data-pptx-inline-formula="规范 LaTeX body">preview text</tspan>` | 同一 DrawingML `a:p` 保留前后 run，并插入 `a14:m > m:oMath` | 见输入档位行 | 只允许非空直接预览文本；禁止子元素、`x/y/dx/dy`、结构化 placeholder / Master / Layout 归属、保留的导入 `txBody` 或原生替换祖先 |
 | 浏览器 / 实时预览 | 块级 marker 内的普通 SVG 子元素，或行内 marker 的直接文本 | 写入原生公式时只丢弃已登记预览 | 原始 LaTeX 不能直接在 SVG 中渲染 | 预览必须表达同一公式；它不是 PPTX 兜底 |
-| 公式字体 | 块级 payload 样式，或行内文本 run 的计算样式 | 行内公式继承字号与可见纯色填充，并使用项目文本语言和 Cambria Math | PowerPoint 2010+ | 高结构或多行数学内容仍使用块级形式 |
+| 公式字体 | 块级 payload 样式，或行内文本 run 的计算样式 | 公式继承字号与可见纯色填充，并使用项目文本语言和 Cambria Math；局部 `\color` / `\textcolor` 作用域会覆盖可选中文字 run 与结构控制符的继承填充，`\boldsymbol` / `\bm` 也会设置结构控制字形的样式 | PowerPoint 2010+ OMML | 高结构或多行数学内容仍使用块级形式 |
 | 非 PowerPoint 客户端播放 | 同一类原生 marker；没有图片分支 | 不附加兼容兜底 | Keynote、WPS、LibreOffice 等客户端不在公式合同内 | 不宣称跨客户端显示或编辑能力 |
 
 公式替换始终启用，不使用 `--native-charts-and-tables`。该路径不会创建
 `formula_manifest.json`、公式 PNG、media relationship 或作为图片的
 `mc:Fallback`。块级 JSON 和行内 `data-pptx-inline-formula` 的值是原生公式源；
 SVG 预览内容只负责让导出前的作者页面保持可见。
+编译仅支持前向生成；PPT Master 不把 OMML 反向 build-down 为 LaTeX。
+可执行闭合集与锁定的 Microsoft 来源修订记录在 `formula_profile.py`；Microsoft
+文档中开放式的 “etc.” 不会把未披露的 relation alias 自动纳入本合同。
 
 ## 10. PowerPoint 播放与打包功能
 
