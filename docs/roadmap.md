@@ -36,7 +36,7 @@ A presentation is four layers: what is on the slide, how it is arranged, how it 
 | Object | Status | Notes |
 |---|---|---|
 | Text | Systematized | Role anchors deck-wide, bounded per-occurrence adjustment, hierarchy and paragraph rules, natively editable runs |
-| WordArt & warped text | Bounded by design | Native WordArt, text warp, and text-on-path are not generated; the same emphasis is rebuilt with ordinary editable text, registered text treatments, and geometry, so every glyph stays a real text run |
+| Native WordArt & warped text | Not planned | AI-generated decorative lettering is the preferred visual carrier, with ordinary editable text as the fallback. Native WordArt, text warp, and text-on-path would add a separate authoring and compatibility surface without improving that path, so they are not generated |
 | Vector shapes | Systematized | primitive → Office preset → Boolean → freeform construction ladder, with native conversion rules |
 | Lines & connectors | Asymmetric by design | Native `p:cxnSp` export is implemented, and endpoint attachment is restored on the preserve/mirror round-trip from a source deck. Newly authored connectors stay unconnected. Binding them would first require deciding which lines are real edges and which are decoration — an intent judgment that no geometric threshold settles, and one that is made by the AI wherever it is placed, so moving it upstream to authoring buys no reliability. The result would be some arrows in a diagram following their node and others not |
 | Icons | Systematized | Bundled libraries with per-project sync; project icons are prepared material |
@@ -45,7 +45,7 @@ A presentation is four layers: what is on the slide, how it is arranged, how it 
 | Charts | Systematized | Dedicated authoring reference; SVG by default, native Chart replacement available as an explicit opt-in |
 | Tables | Systematized | Dedicated authoring reference; six reusable cell-grid references, with custom grids still available; native Table replacement uses the same opt-in |
 | Diagrams | Systematized | Six relationship atoms — `order`, `link`, `parent`, `membership`, `contrast`, `overlap` |
-| Formulas | Systematized | Standalone block and same-paragraph inline formulas compile every explicitly documented Microsoft 365 LaTeX / mhchem input to editable OMML, with documented native normalizations and fail-closed handling outside the profile. SVG previews are authoring-only and no image fallback is emitted. The package target remains PowerPoint 2010+; the executable profile is pinned to the stated Microsoft documentation versions, while repository verification is compiler/OMML/package-level rather than complete Microsoft 365 UI certification. Non-PowerPoint clients remain outside the contract |
+| Formulas | Systematized | Standalone block and same-paragraph inline formulas compile every explicitly documented Microsoft 365 LaTeX / mhchem input to editable OMML, with documented native normalizations and fail-closed handling outside the profile. PPTX import rebuilds validator-clean, PPT Master-owned OMML into normalized formula markers with visible SVG previews; arbitrary third-party OMML and original LaTeX spelling recovery remain outside the contract. No image fallback is emitted. The package target remains PowerPoint 2010+; the executable profile is pinned to the stated Microsoft documentation versions, while repository verification is compiler/OMML/package-level rather than complete Microsoft 365 UI certification. Non-PowerPoint clients remain outside the contract |
 | Narration & animation audio | Systematized | Per-slide narration audio, plus native transition and object sounds drawn from the bundled CC0 catalog |
 | Arbitrary video & background music | Not planned | A one-off, content-specific insert that is faster to place by hand in PowerPoint, and the AI cannot pick the file for you. Background music additionally pulls in narration-mixing decisions that are out of scope. Media already present in a source deck is preserved unchanged through the Fill and Enhance routes |
 | SmartArt | Asymmetric by design | Source diagram parts are read for their content and structure; generated decks redraw that content through the ordinary shape pipeline. DiagramML is never edited and native SmartArt regeneration is not promised |
@@ -70,8 +70,8 @@ A presentation is four layers: what is on the slide, how it is arranged, how it 
 
 | Concern | Status | Notes |
 |---|---|---|
-| Page transitions | Systematized | Includes on-demand transition sounds from a bundled CC0 catalog |
-| Object animation | Systematized | Off by default and opt-in; per-object configuration is explicit |
+| Page transitions | Systematized | Includes on-demand transition sounds from a bundled CC0 catalog; PPTX import reconstructs exact current-registry transitions into the canonical sidecar |
+| Object animation | Systematized | Off by default and opt-in; per-object configuration is explicit, and PPTX import reconstructs the finite exact-duration current-registry subset into the canonical sidecar |
 | Auto-advance | Covered | Derived from narration lead-in, audio duration, and page-tail padding |
 | Media playback | Covered | Narration audio and animation sounds play natively; media already present in a source deck keeps its playback settings |
 | Hyperlinks | Systematized | Whole-object and inline-text links author through standard SVG `<a href>`, export as native external or same-deck click relationships, and reconstruct on supported PPTX import |
