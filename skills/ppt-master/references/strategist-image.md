@@ -16,7 +16,18 @@ For illustration, confirmed `none` stops and explicit user intent wins. Otherwis
 
 **Context-first understanding for provided assets**: Do not visually scan `images/`. First infer identity, role, and crop / focus needs from source position and surrounding prose, captions / alt / titles, filename, user notes / confirmed `image_notes`, existing resource records, and CSV geometry. Inspect only one specific image when a remaining ambiguity would change selection, factual identity, page role, crop safety, or focal placement. Never inspect for inspiration, bulk-open the folder, or infer external facts / provenance from pixels. Record the result in §VIII. Leave an optional unresolved asset unused; route an unresolved must-use asset through failure recovery.
 
-**Default — one coherent sheet per compatible visual family (may override when aspect, detail, quality, or semantic needs differ)**: group AI illustration elements or exact lettering strings by shared visual identity rather than an identical effect recipe; compatible elements share a sheet and split only when their geometry, detail, quality, or semantics conflict. For each sheet, plan one unplaced `ai` Illustration Sheet row plus one placed `slice` row per used element; only slice rows enter `spec_lock.md images`, and one element row may serve several §IX pages. State each element's communication job, placement/reuse relationship, relative visual weight, energy, family, and shape without prescribing an effect stack. Use glyph-native expression by default; record a lettering-plus-illustration lockup only when the user explicitly requests it or the confirmed direction requires it. Lettering sheets use `text_policy: embedded`; the asset may carry the complete display title, while any required searchable, selectable, or outline-visible title remains an ordinary separate native text frame. [`image-generator.md`](./image-generator.md) §§4.3 and 5.3 own the controlled-default/high-expression boundary, artistic authorship, grid, key field, slicing, and execution details. Final Stage 2 chooses the AI execution path under `image-generator.md` §7; do not pre-empt or re-pick it here.
+**Default — use Illustration Sheets when a compatible group benefits from a shared generation context**: illustration elements, illustrated-icon cues, and lettering may all use this path. [`image-generator.md`](./image-generator.md) §4.3 owns grouping and split decisions.
+
+For each sheet, plan one unplaced `ai` Illustration Sheet row plus one placed `slice` row per used element; only slice rows enter `spec_lock.md images`, and one element row may serve several §IX pages. State each element's communication job, placement/reuse relationship, relative visual weight, energy, family, and shape without prescribing an effect stack. Use glyph-native expression by default; record a lettering-plus-illustration lockup only when the user explicitly requests it or the confirmed direction requires it. Lettering sheets use `text_policy: embedded`; the asset may carry the complete display title, while any required searchable, selectable, or outline-visible title remains an ordinary separate native text frame. [`image-generator.md`](./image-generator.md) §§4.3 and 5.3 own the controlled-default/high-expression boundary, artistic authorship, grid, key field, slicing, and execution details. Final Stage 2 chooses the AI execution path under `image-generator.md` §7; do not pre-empt or re-pick it here.
+
+**Default — consider illustrated icons under confirmed AI permission**: when a
+compact semantic job benefits from a project-specific illustrated cue, plan the
+useful cues through the same sheet-to-slice contract. Each placed cue uses
+`Type: Illustrated icon`, `Crop Policy: no-crop`, and an appropriate layout
+recommendation; the parent remains an unplaced `Type: Illustration Sheet`.
+There is no confirmation field or coverage quota. Illustrated cues may coexist
+with base SVG/emoji icons when the overall visual system remains coherent, and
+their slices stay out of `icons/`.
 
 **Mandatory — evaluate decorative lettering under the two-question gate**:
 When confirmed image usage retains `ai`, scan the complete page roster once
@@ -34,11 +45,13 @@ yes, the second answer already establishes the communication benefit; do not
 add another eligibility test. Eligibility is wide, but deck-wide use stays
 selective: choose a coherent set rather than lettering every heading; this
 limits coverage, not eligibility. Adopt the selected marks under the confirmed
-natural-language image intent, then materialize every adopted choice as one
-ordinary `ai` row or as the §4.3 sheet/element rows rather than leaving it as a
-planning suggestion. Use has no coverage quota. An asset may carry the
-complete long or multi-line title as its display layer. Keep an ordinary native
-title/subtitle in a separate text frame wherever the page needs a searchable,
+natural-language image intent, then materialize each one as an ordinary `ai`
+row or group compatible marks through the §4.3 sheet/element rows rather than
+leaving them as planning suggestions. Let letterform character, treatment, and
+practical generation needs guide grouping.
+Use has no coverage quota. An asset may carry the complete long or multi-line
+title as its display layer. Keep an ordinary native title/subtitle in a
+separate text frame wherever the page needs a searchable,
 selectable, or outline-visible heading. Chrome and body remain native text. A
 confirmed `none`, explicit no-AI instruction,
 editable-only hook, or Offline Manual path does not activate this proactive
@@ -69,7 +82,7 @@ References describe visual intent: AI uses subject + intent + composition withou
 
 **Prepared-user fast path**: For initial imported or user-supplied assets confirmed as `provided`, copy the exact `Filename` basename and derive `Dimensions` / `Ratio` from that row's EXIF-corrected `Width` / `Height` / native `AspectRatio` in the latest `analysis/image_analysis.csv`; `SourceDisplayRatio` is source-context metadata, not the bitmap crop ratio. Drop source-side directories, set `Acquire Via: user` and `Status: Existing`, and decide the remaining §VIII fields normally. Existing §VIII / lock / provenance-manifest records override this inference. Assets declared as `ai`, `web`, `slice`, or manual fulfillment retain that provenance and advance through their own status lifecycle after entering `images/`; location never reclassifies them as `user / Existing`.
 
-**Mandatory**: each placed row gets one executable `Layout pattern`. It is preferred expression, not locked geometry; optional hierarchical ids from the already-read [`image-layout-patterns.md`](./image-layout-patterns.md) must be exact. They are prompt lookup handles for Executor, not exporter effect codes. Executor may adapt the suggestion while preserving resource identity/source, must-use status, crop/content, and explicit user/template constraints; layout-only changes need no upstream rewrite.
+**Mandatory**: each placed row gets one executable `Layout pattern`. It is preferred expression, not locked geometry; optional hierarchical ids from the already-read [`image-layout-patterns.md`](./image-layout-patterns.md) must be exact. They are prompt lookup handles for Executor, not exporter effect codes. Executor may adopt, adapt, or decline the suggestion while preserving resource identity/source, must-use status, crop/content, and explicit user/template constraints; layout-only changes need no upstream rewrite.
 
 **Default — action-bearing image plan (may override when restraint better serves the page)**: For a `hero_page` or other image-led row, name an image/content or image/shape action—not position, size, crop, or legibility scrim alone. Plain split and full bleed remain valid when clearest.
 
