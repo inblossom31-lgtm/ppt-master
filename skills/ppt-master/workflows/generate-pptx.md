@@ -8,6 +8,10 @@ description: Default Generate PPTX authority for source intake, planning, SVG au
 > Beautify profile. This file owns that runtime's Step 1–7 sequence, gates, role
 > switching, and mandatory commands. Explicit Quick loads its own profile instead.
 
+**Hard rule — runtime paths**: Resolve every linked or abbreviated package path
+below from the entry-time `SKILL_DIR` anchor and expand it inside each tool
+call. Never change CWD or inherit a prior shell working directory.
+
 **Default Core Pipeline**: `Initial Materials → [Fact Research] → Create Project → Template Candidate Preparation → Stage-1 Communication + Template Confirmation → [Template Installation] → Stage-2 Solution → [Image Acquisition] → Executor Live Preview → Quality Check → Post-processing → Export`
 
 **Generate-specific execution discipline**:
@@ -257,7 +261,8 @@ a deck's larger identity/slide-library files only when the specific need below
 arises.
 
 ```
-Read references/strategist.md
+Read ${SKILL_DIR}/references/strategist.md
+Read ${SKILL_DIR}/references/canvas-formats.md
 ```
 
 Then load only the extra role modules triggered by the current plan:
@@ -266,16 +271,31 @@ Then load only the extra role modules triggered by the current plan:
 |---|---|
 | Stage 1 is confirmed and its template choice installed a selected Brand/Style/Layout/Deck workspace into this project | `references/strategist-template.md` before Stage 2 |
 | The confirmed Stage-1 `delivery_context` identifies recorded/self-running/video delivery, or input is an explicit final/literal narration script | `references/video-design.md` before the three Stage-2 whole solutions and page roster |
-| The confirmed Stage 2 `image_usage` contains a source other than `none`, or the user supplied an explicit non-`none` image constraint | `references/image-layout-spec.md` + `references/image-layout-patterns.md` before production detail or §VIII |
 
-After Stage 1 and template handoff, load `strategist-image.md` plus only the
-three `_index.md` files. Author the three whole solution intents before mapping
-any component basis. Freeze every referenced mode/style/rendering id from the
-indexes, then read once only the deduplicated union of those exact detail files
-and finish the three custom behaviors. A novel custom reads no detail file.
-Confirmed non-`none` loads the layout references and continues into resource
-planning; confirmed `none` writes no image rows while retaining
-recommendation-only rendering candidates. Only an installed
+After Stage 1 and template handoff, load the fixed planning-capability block
+below in one batch before authoring any Stage-2 whole-solution intent, image
+source recommendation, or page roster:
+
+```
+Read ${SKILL_DIR}/references/strategist-image.md
+Read ${SKILL_DIR}/references/image-layout-spec.md
+Read ${SKILL_DIR}/references/image-layout-patterns.md
+Read ${SKILL_DIR}/references/modes/_index.md
+Read ${SKILL_DIR}/references/visual-styles/_index.md
+Read ${SKILL_DIR}/references/image-renderings/_index.md
+Read ${SKILL_DIR}/templates/icons/README.md
+Read ${SKILL_DIR}/templates/charts/chart-vocabulary.md
+Read ${SKILL_DIR}/templates/tables/table-vocabulary.md
+```
+
+This is a capability map, not a usage checklist: retain zero-use outcomes and
+the Strategist/Executor ownership boundary. Author the three whole solution
+intents before mapping any component basis. Freeze every referenced
+mode/style/rendering id from the indexes, then read once only the deduplicated
+union of those exact detail files and finish the three custom behaviors. A novel
+custom reads no detail file. Confirmed non-`none` uses the already-loaded image
+layout references and continues into resource planning; confirmed `none` writes
+no image rows while retaining recommendation-only rendering candidates. Only an installed
 project-local template state loads the template module, and only after Stage 1
 is confirmed; a bare template/style name does not.
 
@@ -363,11 +383,10 @@ or `templates` with at least one server-resolved root.
    it. The server requires this handoff before Stage 2.
 
 2. Only now inspect installed template state and apply
-   `strategist-template.md` when active. Read `strategist-image.md` plus only
-   `modes/_index.md`, `visual-styles/_index.md`, and
-   `image-renderings/_index.md`; author three whole solution intents, freeze
-   their exact component references from those indexes, then read only the
-   referenced detail files and complete the custom projections. Derive the
+   `strategist-template.md` when active. Load the fixed Stage-2 planning-capability
+   block above, author three whole solution intents, freeze their exact component
+   references from its indexes, then read only the referenced detail files and
+   complete the custom projections. Derive the
    remaining production defaults and create
    `confirm_ui/recommendations.stage2.json` without changing Stage 1; declare
    `stage: "stage2"`, then wait for the final confirmation:
@@ -495,7 +514,7 @@ state and §X records its source/verbatim policy. After Gate 2, before Step 5 or
 split handoff, write the exact segments once to `notes/total.md`; split them only
 in Step 7.1. This is frozen production input, not a third planning artifact.
 
-**✅ Internal checkpoint — Phase deliverables complete**: facts read; confirmation consumed once; final Stage-2 production fields resolved (generation mode, refine-spec, proactive choices, and conditional AI path); mathematical content recorded where applicable; Design Spec passed Gate 1; enabled refinement approved; lock derived from it; split handling resolved; communication and every §IX `Audience move` validated. Do not print this checklist; auto-proceed.
+**✅ Internal checkpoint — Phase deliverables complete**: facts read; confirmation consumed once; final Stage-2 production fields resolved (generation mode, refine-spec, proactive choices, and conditional AI path); mathematical content recorded where applicable; every §IX page resolved its one-pass carrier mix and §VIII contains only assigned external image-resource jobs; Design Spec passed Gate 1; enabled refinement approved; lock derived from it; split handling resolved; communication and every §IX `Audience move` validated. Do not print this checklist; auto-proceed.
 
 ---
 
@@ -503,14 +522,14 @@ in Step 7.1. This is frozen production input, not a third planning artifact.
 
 🚧 **GATE**: Step 4 complete; `<project_path>/design_spec.md` and `<project_path>/spec_lock.md` both exist. If either required artifact is missing, stop before any acquisition or generation and follow [`failure-recovery.md`](governance/failure-recovery.md) §3.
 
-> **Trigger**: At least one row in the resource list has `Acquire Via: ai`, `web`, and/or `slice`, or any row is a pending prepared derivative declared by `Reference: Derived from <canonical bare filename>; treatment=...`. A prepared-user-only plan skips this step only when it has no derivative to materialize; `placeholder` rows alone do not trigger it. A permitted but unused image source creates no row and does not trigger acquisition. If §VIII omits a source, asset, or page role that `image_notes` explicitly requires, the Design Spec is incomplete; return to Step 4 Gate 1, repair it from the retained final state, and re-author the affected lock anchors from context. Do not reopen `result.json` during this check.
+> **Trigger**: §VIII is Step 4's committed external image-resource result, not a candidate inventory. At least one row has `Acquire Via: ai`, `web`, and/or `slice`, or one row is a pending prepared derivative declared by `Reference: Derived from <canonical bare filename>; treatment=...`. A prepared-user-only plan skips this step only when it has no derivative to materialize; `placeholder` rows alone do not trigger it. A permitted but unused image source creates no row and does not trigger acquisition. If §VIII omits a source, asset, or page role that `image_notes` explicitly requires, the Design Spec is incomplete; return to Step 4 Gate 1, repair it from the retained final state, and re-author the affected lock anchors from context. Do not reopen `result.json` during this check.
 
 **Failure recovery**: stop/continue behavior for AI/web/slice/image-readiness failures is defined in [`workflows/governance/failure-recovery.md`](governance/failure-recovery.md). This Step keeps the acquisition procedure.
 
 **Always load the common framework**:
 
 ```
-Read references/image-base.md
+Read ${SKILL_DIR}/references/image-base.md
 ```
 
 Then **lazy-load the path-specific reference** for each row that actually needs it:
@@ -572,7 +591,7 @@ Workflow:
 Read the Executor role core before applying its context policy:
 
 ```
-Read references/executor-base.md                  # REQUIRED: flat/shared execution core
+Read ${SKILL_DIR}/references/executor-base.md     # REQUIRED: flat/shared execution core
 ```
 
 **Planning context**: follow [`executor-base.md`](../references/executor-base.md) §2.1. Reuse the complete Design Spec and lock in an unchanged, uncompacted context. Fresh/resumed/restarted, compacted/summary-only, or externally/unknown changed execution reads both once and reloads triggered inputs. For a local question, consult the retained lock first, then only the owning Design Spec fragment; do not poll files merely to prove validity.
@@ -593,12 +612,14 @@ Read the exact execution references named by this deck's retained
 `spec_lock.md`; do not reopen the planning indexes. Load the remaining fixed
 construction block plus the resolved mode/style detail files as one batch:
 ```
-Read references/shared-standards-core.md          # REQUIRED: SVG compatibility + shared aesthetic/leading baseline
-Read references/svg-effects.md                    # REQUIRED: Visual Job Router + effects/construction vocabulary
-Read references/native-shape-authoring.md         # REQUIRED: native-shape selection and Boolean construction
-Read references/semantic-svg.md                   # REQUIRED: semantic metadata boundary
-Read references/modes/<resolved-id>.md             # one preset id, or each `mode_references` id
-Read references/visual-styles/<resolved-id>.md     # one preset id, or each `visual_style_references` id
+Read ${SKILL_DIR}/references/shared-standards-core.md      # REQUIRED: SVG compatibility + shared aesthetic/leading baseline
+Read ${SKILL_DIR}/references/svg-effects.md                # REQUIRED: Visual Job Router + effects/construction vocabulary
+Read ${SKILL_DIR}/references/native-shape-authoring.md     # REQUIRED: native-shape selection and Boolean construction
+Read ${SKILL_DIR}/references/preset-shape-vocabulary.md    # REQUIRED: complete 187-name authoring vocabulary
+Read ${SKILL_DIR}/references/executor-structure.md         # REQUIRED: qualitative relationship and topology grammar
+Read ${SKILL_DIR}/references/semantic-svg.md               # REQUIRED: semantic metadata boundary
+Read ${SKILL_DIR}/references/modes/<resolved-id>.md        # one preset id, or each `mode_references` id
+Read ${SKILL_DIR}/references/visual-styles/<resolved-id>.md # one preset id, or each `visual_style_references` id
 ```
 
 Keep the core's shared visual-quality defaults and `svg-effects.md` §6.1 Visual Job Router active during page authoring; they are not passive compatibility reading. Explicit user/template requirements and the locked style override compatible aesthetic defaults, never technical Required / Forbidden boundaries.
@@ -610,7 +631,6 @@ Keep the core's shared visual-quality defaults and `svg-effects.md` §6.1 Visual
 | `pptx_structure.mode: structured` | `executor-structured.md` + `pptx-structure-interface.md` |
 | Selected §VII / `page_visualizations` Chart/Table `family/key`, or a legacy `page_charts` row resolving to a live Chart/Table SVG | `executor-visualization.md` + the selected Chart/Table branch |
 | Actual value-driven geometry, including mini/inset charts and sparklines | `executor-chart.md` |
-| Mandatory per-page Structure decision from §IX is `yes` | `executor-structure.md` before any geometry for the first applicable page |
 | Actual row × column fact grid | `executor-table.md` |
 | Used preset pattern fill, or independent Chart/Table with §IX `<object-key>=yes` | `native-data-interface.md` before that object |
 | §IX or current page content contains mathematical notation that may require native math | `native-formula.md` before choosing ordinary text, inline native math, or block native math |
@@ -622,8 +642,9 @@ Keep the core's shared visual-quality defaults and `svg-effects.md` §6.1 Visual
 
 No branch is loaded by analogy. For each page, after §IX content/communication
 but before geometry, apply [`executor-base.md`](../references/executor-base.md)'s
-mandatory Structure decision. `no` stays on base; before the first `yes`, read
-`executor-structure.md` completely and reuse it until file/context invalidation.
+mandatory Structure decision with the already-loaded
+`executor-structure.md`. `no` stays on the shared base; `yes` applies that
+grammar without another load gate.
 Create no catalog/lock/artifact. Chart/Table selection neither replaces this
 decision nor locks geometry/native readiness.
 
@@ -656,7 +677,7 @@ sidecars, or guessed family paths.
 
 **Visual Construction Phase**: generate SVG pages sequentially, one at a time, in one continuous pass → `<project_path>/svg_output/`
 
-Each completed SVG MUST be a standalone, complete representation of that slide's visible design. Template SVGs and locked planning artifacts may guide construction, but export must not reach back to them to add visible objects omitted from `svg_output/`. Speaker notes, animation, narration, transitions, and direct native-PPTX workflows remain separately owned artifacts/capabilities. Native shapes are Executor-local authoring capabilities, not planned resources: follow [`native-shape-authoring.md`](../references/native-shape-authoring.md), load its complete current preset inventory before the first page, choose page-fit contours before their authoring forms, keep exact native atoms independent when possible, materialize a Merge Shapes Boolean result only where contour semantics require it, and use necessary freeform last. Diagram relationships follow the same Shape-first gate; do not infer a preset from contour similarity.
+Each completed SVG MUST be a standalone, complete representation of that slide's visible design. Template SVGs and locked planning artifacts may guide construction, but export must not reach back to them to add visible objects omitted from `svg_output/`. Speaker notes, animation, narration, transitions, and direct native-PPTX workflows remain separately owned artifacts/capabilities. Native shapes are Executor-local authoring capabilities, not planned resources: follow [`native-shape-authoring.md`](../references/native-shape-authoring.md), read the complete current preset vocabulary before the first page, choose page-fit contours before their authoring forms, keep exact native atoms independent when possible, materialize a Merge Shapes Boolean result only where contour semantics require it, and use necessary freeform last. Diagram relationships follow the same Shape-first gate; do not infer a preset from contour similarity.
 
 **Motion-ready image composition**: Only when an explicit user motion
 instruction, the effective Custom Animations outcome in `design_spec.md §I` is
@@ -691,7 +712,7 @@ Run the command unfiltered—do not pipe it through `tail`, `head`, `grep`, or a
 
 | Signal | Reading |
 |---|---|
-| Two or more issues share a category and direction | Method-level bias — resolve it to the authoritative rule before P02; a correction fitted to the observed offset only patches this sample. For text extents that rule is `svg_to_pptx.drawingml.elements.estimate_single_line_text_frame_width(runs)`, with `skills/ppt-master/scripts` on `sys.path` and every run key present — `text`, `font_size`, `font_family`, `font_weight`, `letter_spacing` — since omissions under-measure |
+| Two or more issues share a category and direction | Method-level bias — resolve it to the authoritative rule before P02; a correction fitted to the observed offset only patches this sample. For text extents that rule is `svg_to_pptx.drawingml.elements.estimate_single_line_text_frame_width(runs)`, with `${SKILL_DIR}/scripts` on `sys.path` and every run key present — `text`, `font_size`, `font_family`, `font_weight`, `letter_spacing` — since omissions under-measure |
 | One isolated issue tied to this page's structure | Page-local — fix and continue |
 | A recurring element appears for the first time (page furniture, caption format, section numbering, accent discipline) | It will be copied to every later page — confirm its semantics now |
 
@@ -847,6 +868,7 @@ Before creating the PPTX, the exporter independently requires the current matchi
 ## ✅ Generate PPTX Complete
 
 - [x] Image readiness gate passed
+- [x] The final carrier receipt was compared with the retained page decisions, and any factual contradiction was repaired without treating counts as quotas
 - [x] Notes split completed when enabled; disabled exports used `--no-notes`
 - [x] `svg_final/` preview completed
 - [x] Native PPTX published and postflight report written

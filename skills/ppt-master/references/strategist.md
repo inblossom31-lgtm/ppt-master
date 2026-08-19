@@ -125,11 +125,11 @@ When authoring §IX, translate every purpose named in `communication_intent` int
 
 Two independent layers, each locks one preset or `custom`. Output: `d. Mode: <mode> + Visual style: <visual_style>`.
 
-> **Top-down custom direction construction.** Author three complete solution intents from the confirmed project contract and source before selecting any catalog basis; do not assemble three apparent solutions from independent mode/style/rendering picks. At that point only the three indexes may be in context. Use their summaries to freeze the exact reference ids for each direction, then read once only the deduplicated union of those referenced detail files and author the final behaviors. Every direction MUST serialize `mode: custom`, `visual_style: custom`, and `image_strategy.rendering: custom`, each with visible, non-empty behavior prose. A custom may use zero, one, or many catalog bases: one may specialize a strong dominant basis, several may divide distinct executable jobs, and a genuinely novel custom uses none. Reference count has no fixed cap and is an outcome, not a target; omit every basis whose contribution the behavior cannot state, and never add a second basis merely to make the result look synthesized. These three projections are the project-specific choices above the conservative fixed catalogs, not a fourth Custom proposal. Never glob a catalog, read an unselected sibling, or write bespoke prose as an enum value.
+> **Top-down custom direction construction.** Author three complete solution intents from the confirmed project contract and source before selecting any catalog basis; do not assemble three apparent solutions from independent mode/style/rendering picks. The fixed planning-capability batch may already be in context, but only the three mode/style/rendering indexes act as basis selectors. Use their summaries to freeze the exact reference ids for each direction, then read once only the deduplicated union of those referenced detail files and author the final behaviors. Every direction MUST serialize `mode: custom`, `visual_style: custom`, and `image_strategy.rendering: custom`, each with visible, non-empty behavior prose. A custom may use zero, one, or many catalog bases: one may specialize a strong dominant basis, several may divide distinct executable jobs, and a genuinely novel custom uses none. Reference count has no fixed cap and is an outcome, not a target; omit every basis whose contribution the behavior cannot state, and never add a second basis merely to make the result look synthesized. These three projections are the project-specific choices above the conservative fixed catalogs, not a fourth Custom proposal. Never glob a catalog, read an unselected sibling, or write bespoke prose as an enum value.
 
 #### Layer 1 — Communication mode
 
-🚧 **GATE**: before choosing a basis, read only [`modes/_index.md`](./modes/_index.md). After the three direction intents exist and their mode reference ids are frozen, read only those exact sibling files once; a novel mode reads none.
+🚧 **GATE**: use the already-loaded [`modes/_index.md`](./modes/_index.md) as the sole mode-basis catalog authority. After the three direction intents exist and their mode reference ids are frozen, read only those exact sibling files once; a novel mode reads none.
 
 The deck's **narrative + persuasion skeleton** — how the argument is organized and advanced. Lock one preset from `pyramid` / `narrative` / `instructional` / `showcase` / `briefing`, or `custom` with behavior.
 
@@ -143,7 +143,7 @@ Record the confirmed mode and rationale in `design_spec.md` first, including eve
 
 #### Layer 2 — Visual style
 
-🚧 **GATE**: before choosing a basis, read only [`visual-styles/_index.md`](./visual-styles/_index.md). After the three direction intents exist and their style reference ids are frozen, read only those exact sibling files once; a novel style reads none.
+🚧 **GATE**: use the already-loaded [`visual-styles/_index.md`](./visual-styles/_index.md) as the sole style-basis catalog authority. After the three direction intents exist and their style reference ids are frozen, read only those exact sibling files once; a novel style reads none.
 
 The deck's **visual aesthetic** — shape language, decoration density, whitespace rhythm, typographic character, texture. Anchors downstream fields e (Color), f (Icon), g (Typography), h (Image). Lock one preset from the catalog, or `custom`.
 
@@ -182,7 +182,7 @@ The base icon style is one single-select identity, not a material whitelist:
 | Option | Approach | Suitable Scenarios |
 |--------|----------|-------------------|
 | **A** | Emoji | Casual, playful, social media |
-| **B** | Built-in generic icon library | Professional scenarios (recommended) |
+| **B** | Built-in generic icon library | Recurring compact semantic cues in one coherent SVG style |
 | **C** | Custom project icons | Supplied, template-carried, or imported assets |
 | **D** | No base icons | Illustration, typography, shapes, or data already carry the compact cues |
 
@@ -307,7 +307,7 @@ owns SVG authoring under [`native-hyperlinks.md`](./native-hyperlinks.md).
 
 **Mandatory — no AI capability preflight**: When `recommend.image_usage` includes `ai`, preserve an explicit user path instruction; otherwise recommend `auto`. Do not inspect backend configuration, check host-tool availability, or probe a provider during planning. Generate Step 5 execution is the first capability check.
 
-**Default — visual grounding before `none` (may override when the user forbids images or charts / native SVG fully carry the visual burden)**: First decide whether the audience must recognize, experience, compare, or choose an externally verifiable subject, place, product, or setting. When yes, propose `provided` / `web`; propose `ai` when invented or deliberately stylized expression materially improves a planned visual job. Treat `none` as a positive whole-deck conclusion. Mixed sources may serve different page roles. The three Stage-2 style directions never settle source: a rendering candidate resolves how imagery looks, never whether a real subject must appear as itself.
+**Default — visual grounding before `none` (may override when the full-roster carrier review finds no useful image job)**: Honor an explicit no-image requirement. First decide whether the audience must recognize, experience, compare, or choose an externally verifiable subject, place, product, or setting. When yes, propose `provided` / `web`; propose `ai` when invented or deliberately stylized expression materially improves a planned visual job. Treat `none` as a positive whole-deck conclusion when no image source owns a meaningful communication job. Mixed sources may serve different page roles. The three Stage-2 style directions never settle source: a rendering candidate resolves how imagery looks, never whether a real subject must appear as itself.
 
 **Default — consider proactive illustrated icons without creating another
 confirmation field**: Before each Stage-2 `recommend.image_usage`, consider
@@ -316,21 +316,23 @@ illustrated cue family. This may support an `ai` recommendation, but it is not
 an automatic source trigger or coverage quota. Resource grouping remains a
 fit-driven decision under [`strategist-image.md`](./strategist-image.md).
 
-**Mandatory — assess proactive decorative lettering without making eligibility
-an automatic source trigger**: Before each Stage-2 `recommend.image_usage`,
-scan the complete planned roster for exact stable display strings whose
-artistic treatment could communicate better than native type. Page role,
-character count, word count, line count, and kind of noun never filter
-candidates: a complete long or
+**Mandatory — scan proactive decorative-lettering capability without making
+candidates an automatic source trigger**: Before each Stage-2
+`recommend.image_usage`, scan the complete planned roster for exact stable
+display strings whose artistic treatment could plausibly communicate better
+than native type. Page role, character count, word count, line count, kind of
+noun, and proposed style never pre-filter candidates: a complete long or
 multi-line title is as eligible as a short mark. Never invent, rewrite,
-shorten, or split copy to make generation easier. An eligible string is one
-possible AI visual job, not a mechanical reason to add
-`ai`. The second eligibility question already decides whether lettering
-strengthens communication: when its answer is yes, lettering may be the sole
-intended AI job and may support an AI recommendation stated in
-`image_notes.value`; when either answer is no, native editable text remains
-valid. The absence of another AI-image job never forces lettering. Explicit
-no-AI or editable-only requirements win. Execution follows
+shorten, or split copy to make generation easier. Passing both discovery
+questions exposes one possible AI visual job, not a selected resource or a
+mechanical reason to add `ai`. During page-carrier planning, compare those
+candidates with native type and the complete deck mix; select only the marks
+whose treatment wins that fit. Zero selected marks remains valid and needs no
+skip explanation or coverage quota. A selected mark may be the sole intended
+AI job and may support an AI recommendation stated in `image_notes.value`;
+when either discovery answer is no, native editable text remains valid. The
+absence of another AI-image job never forces lettering. Explicit no-AI or
+editable-only requirements win. Execution follows
 [`image-generator.md`](./image-generator.md) §7.
 
 **Recommendation output**: Write `recommend.image_usage` as one source id or an array for mixed sources. Put the intended communication jobs of each proposed source, authoritative assets, preferred/avoided imagery, and placeholder tolerance in `image_notes.value`. When `ai` is proposed, explain in editable natural language how generated visuals are expected to contribute and mention any materially anticipated illustration, illustrated-icon, or lettering role. Keep the note an open strategy—not an enum, carrier allowlist, page-by-page assignment, count, or resource manifest; name exact pages/assets only when already authoritative or required. `none` is exclusive. Decks built around real-world recognition or choice, including travel itineraries, lean `provided` / `web`; generic human-scale topics such as family life, education, wellness, or children lean `ai` when no supplied asset carries the story and invented or stylized expression serves it. Regulated investor decks, B2B finance reports, and data-only dashboards remain eligible for `none` by judgment.
@@ -339,17 +341,38 @@ no-AI or editable-only requirements win. Execution follows
 
 **Always-on decision module; conditional resource extension**:
 
-1. Before authoring Stage-2 directions, read [`strategist-image.md`](./strategist-image.md) plus only [`image-renderings/_index.md`](./image-renderings/_index.md). After the three whole-direction intents exist and their rendering reference ids are frozen, read only those exact sibling files once and author one complete custom rendering inside each direction before deciding whether `recommend.image_usage` includes AI.
-2. Independently derive `recommend.image_usage` from source needs. Confirmed non-`none` sources activate the module's resource-planning sections and the image layout references. Confirmed `none` writes no image rows, but does not erase the three recommendation-only rendering candidates.
+1. Before authoring Stage-2 directions, load the workflow's complete fixed
+   planning-capability batch. It includes this module, the image-layout
+   authorities, all compact decision maps, the icon-library contract, the
+   complete Chart and Table expression vocabularies. After the
+   three whole-direction intents exist and their mode/style/rendering reference
+   ids are frozen, read only
+   those exact detail siblings once and author one complete custom rendering
+   inside each direction before deciding whether `recommend.image_usage`
+   includes AI.
+2. Independently derive `recommend.image_usage` from source needs. Confirmed
+   non-`none` sources activate the module's resource-planning sections.
+   Confirmed `none` writes no image rows, but does not erase the three
+   recommendation-only rendering candidates or the already-loaded composition
+   vocabulary.
 
 The module owns AI rendering alternatives, acquisition paths, resource rows, prompt depth, page roles, and placement intent.
 
-### Presentation Capability & Visualization Recall (Non-blocking — Strategist recommends, no user confirmation needed)
+### Page Carrier and Capability Planning (Non-blocking — Strategist recommends, no user confirmation needed)
 
-**Per-page capability recall**: Before §IX, consider this menu without a usage
-quota. Use existing fields for semantic intent; omit unused lines and
-implementation parameters. Executor may adapt/decline a `Motion suggestion`
-while preserving content and intent; explicit user/template requirements bind.
+**Mandatory — one-pass page carrier planning**: During the same §IX roster
+composition, resolve each page's complete semantic carrier mix—background
+field, editable text and optional lettering, native-geometry/relationship jobs,
+photos/scenes/illustrations/icons, and applicable visualizations—before
+deriving §VIII resource rows. Decide the primary, structural, and supporting
+jobs together; do not finish a text/container layout and then treat the other
+families as optional decoration. Use existing §VI/§VIII/§IX fields: keep the
+ordinary icon basis and prepared-pool plan in §VI, and add an image, lettering,
+or illustrated-icon resource to §VIII only when the page mix assigns it a
+plausible job. This creates no new field or candidate inventory; omitting any
+carrier remains valid after the same review. Macro composition recommendations
+remain Reference; planned resource identities/jobs and explicit user/template
+requirements retain their existing authority.
 
 **Hard rule — native construction stays downstream**: record the page's
 semantic relationships, prepared resource roles, and any useful macro
@@ -362,7 +385,7 @@ system.
 
 | Capability | Opportunity signal | Design Spec handoff |
 |---|---|---|
-| Image composition | Image-as-canvas, editorial crop, collage, cutout, or meaningful focus / comparison / evidence units carry the page better than an adjacent rectangle | Propose a permitted source; when selected, apply the already-loaded [`strategist-image.md`](./strategist-image.md) resource contract plus the conditional image-layout references, record a concise §VIII `Layout pattern` suggestion, and describe page-level image/overlay relationships in §IX `Layout` / `Images` |
+| Image composition | Image-as-canvas, editorial crop, collage, cutout, or meaningful focus / comparison / evidence units carry the page better than an adjacent rectangle | Propose a permitted source; when selected, apply the already-loaded [`strategist-image.md`](./strategist-image.md) resource contract and image-layout references, record a concise §VIII `Layout pattern` suggestion, and describe page-level image/overlay relationships in §IX `Layout` / `Images` |
 | Composable illustration family | One or more pages benefit from coherent reusable title/corner ornaments, dominant anchors, supporting figures, compact illustrated-icon cues, or accents that can mix with text, shapes, photos, or lettering | Apply [`strategist-image.md`](./strategist-image.md): plan transparent elements by compatible family, record fixed reuse or adaptive variation in §VIII `Reference`, and describe each used page's carrier relationships in §IX `Layout` / `Images` |
 | Native paint / overlay | Gradient, translucency, scrim, vignette, or wash supports focus, hierarchy, depth, legibility, or image integration | Record purpose/layering in §IX `Layout`, plus `Images` when imagery participates; no new field or type/stops/opacity/coordinates—Executor chooses realization |
 | AI decorative lettering asset | Any stable display string in the deck — including a complete long or multi-line title, cover hook, chapter word, place or product name, dish or exhibit name, year, hero number, pull quote, or motif word — reads better with a material, dimensional, hand-rendered, or otherwise illustrative treatment than as ordinary text | Apply [`strategist-image.md`](./strategist-image.md): preserve every complete exact string, group compatible marks when useful, and keep chrome/body as native text. The lettering asset may carry the complete long or multi-line title as its display layer; keep an ordinary native title/subtitle in a separate text frame wherever the page needs a searchable, selectable, or outline-visible heading. Never shorten copy to make it look more like a wordmark |
@@ -391,23 +414,18 @@ Classify by information model, never source PowerPoint object type:
 | Model | Planning action |
 |---|---|
 | Qualitative `order`, `link`, `parent`, `membership`, `contrast`, or `overlap` | Preserve units, relationship, and reading path as free §IX prose; no catalog key |
-| Values/dates/durations determine geometry | Chart; recall is optional |
-| Row header × column header addresses each fact | Table; recall is optional |
+| Values/dates/durations determine geometry | Chart; compare the complete loaded chart expression vocabulary |
+| Row header × column header addresses each fact | Table; compare the complete loaded Table expression vocabulary |
 
 **Mandatory — relationship handoff**: keep every qualitative relationship in §IX free prose; never serialize grammar atoms, coordinates, or named models. Executor makes the per-page Structure decision at runtime.
 
-**Reference — not a constraint**: recall Chart/Table with 3–8 English tags when useful; add `--family chart|table` only when certain. Skip custom objects and qualitative composition.
-
-```bash
-python3 skills/ppt-master/scripts/visualization_recall.py recall \
-  --page P03 \
-  --tag "time series" \
-  --tag "three metrics" \
-  --tag "direction over time" \
-  --limit 6
-```
-
-The command returns a bounded shortlist plus `no-template-match`. Read it unfiltered; `tail` / `head` / `grep` can hide ranked candidates. `confidence` is lexical only. At `high` / `medium`, keep no-match after candidate review. At `low` / `none`, use a fitting candidate directly; otherwise rerun once with `--semantic-fallback` before no-match. Do not open any family index separately.
+**Mandatory — complete Chart/Table capability review**: During the same §IX
+roster composition, compare every page's information model against every entry
+in the already-loaded Chart and Table expression vocabularies. These
+complete capability maps expose what can be selected; their descriptions do
+not rank candidates or replace judgment from the actual information. They are
+neither usage quotas nor whitelists. Skip custom objects and qualitative
+composition. Retain `no-template-match` when no registered reference fits.
 
 **Selection**:
 
@@ -420,11 +438,12 @@ python3 skills/ppt-master/scripts/visualization_recall.py validate \
   <family>/<key> [<family>/<key> ...]
 ```
 
-Correct failed selections by recall; `no-template-match` never enters `page_visualizations`.
+Correct failed selections by re-reading the complete vocabulary/registry;
+`no-template-match` never enters `page_visualizations`.
 
 **Section VII selection list**: write `Page | Family | Template | Usage` for each `chart|table` reference; Usage is semantic purpose. Omit empty/no-match detail. Qualitative composition stays in §IX; only Layout/Deck owns reusable PowerPoint structure.
 
-**Native-ready boundary**: Give every independent data chart and pure text-grid table in §IX `Visualization` a unique page-local semantic `kebab-case` key, then write one `Native-ready` map: `<key>=yes|no; ...`. Use `yes` only when an editable native object benefits the confirmed requirement/afterlife. Qualitative shape compositions and incidental microvisuals stay unlisted.
+**Native-ready boundary**: Give every independent data chart and pure text-grid table in §IX `Visualization` a unique page-local semantic `kebab-case` key, then write one `Native-ready` map: `<key>=yes|no; ...`. Decide `yes` by default; use `no` only when [`native-data-interface.md`](./native-data-interface.md) §2 cannot express that object. Qualitative shape compositions and incidental microvisuals stay unlisted.
 
 ```markdown
 | Page | Family | Template | Usage |
@@ -465,7 +484,13 @@ Confirmation `d` locks two independent catalog items:
 - **Mode** — narrative skeleton: [`modes/_index.md`](./modes/_index.md) → `pyramid` / `narrative` / `instructional` / `showcase` / `briefing`.
 - **Visual style** — aesthetic: [`visual-styles/_index.md`](./visual-styles/_index.md) → presets + `custom`.
 
-Strategist first reads only the three indexes, freezes the bases for the three whole directions, then reads only the deduplicated referenced detail files before authoring their custom behaviors. Executor reads one locked preset file or the exact references of a selected custom; neither role globs a catalog (see [`generate-pptx`](../workflows/generate-pptx.md) Step 6).
+Strategist first loads the fixed planning-capability batch. For
+mode/style/rendering basis selection it uses only the three corresponding
+indexes, freezes the bases for the three whole directions, then reads only the
+deduplicated referenced detail files before authoring their custom behaviors.
+Executor reads one locked preset file or the exact references of a selected
+custom; neither role globs a detail catalog (see
+[`generate-pptx`](../workflows/generate-pptx.md) Step 6).
 
 ---
 
@@ -576,7 +601,7 @@ includes transitions.
    - **Custom behavior is concise and executable**: For confirmed `custom` mode or visual style, project one resolved `mode_behavior` / `visual_style_behavior` sentence or short paragraph. When the direction actually combines or borrows catalog entries, also project the exact, comma-separated `mode_references` / `visual_style_references`; omit the field for a genuinely novel direction and never fabricate a nearby reference. Preserve the confirmed direction, reference locked role names such as `colors.primary` when needed, and omit selection history, contradictions, precedence explanations, or other Design Spec provenance. Executor reads these fields from the retained lock and loads every referenced catalog entry once per valid context.
    - **page_rhythm is mandatory**: Based on the page list in §IX Content Outline, assign each page one of `anchor` / `dense` / `breathing`. This is what breaks the uniform "every page is a card grid" feel. New locks may not omit the section; consumer omission behavior is owned by [`executor-base.md`](executor-base.md) §2.1.
    - **Fact IDs and scenario labels are mandatory when applicable**: Read any `sources/*.facts.json`. For each §IX page, list the stable IDs actually used; never cite an ID whose claim is absent from the page. Mark invented KPIs/targets/internal ratios as `Data class: scenario` and state which values are scenario data. Executor carries external sources into notes/footnotes and renders a visible scenario label for scenario figures.
-   - **Mandatory — whole-roster rhythm check**: During the same §IX composition, compare neighbors and section arcs to judge whether chapter entries visibly reset, extended same-density runs are intentional, extended same-carrier or same-topology runs form an intentional semantic sub-arc, repeated dominant geometry carries a continuity job, any qualifying §6.1 visible-state sequence preserves a recognizable mental map while making its next semantic change legible, each section follows a mode-fitting progression—including framework → explanation/evidence → judgment/action when it serves the objective—and the final arc resolves the communication objective before a genuine ending lowers information load. Repair the existing roster, `Layout` recommendations, and `page_rhythm` choices in place. This is judgment, not quota; preserve intentional continuity, legitimately all-`dense` material, and 1:1/literal order. Do not invent filler pages to manufacture rhythm; a `breathing` page marks a meaningful pause—chapter transition, standalone emphasis, or SCQA bridge—and must stand alone. Create no field, lock row, artifact, or second review/execution pass.
+   - **Mandatory — whole-roster rhythm check**: During the same §IX composition, compare neighbors and section arcs to judge whether chapter entries visibly reset, extended same-density runs are intentional, extended same-carrier or same-topology runs form an intentional semantic sub-arc, repeated dominant geometry carries a continuity job, any qualifying §6.1 visible-state sequence preserves a recognizable mental map while making its next semantic change legible, each section follows a mode-fitting progression—including framework → explanation/evidence → judgment/action when it serves the objective—and the final arc resolves the communication objective before a genuine ending lowers information load. Same section, equal weight or density, one style, and prior-page precedent do not establish a semantic sub-arc. Repair the existing roster, `Layout` recommendations, and `page_rhythm` choices in place. This is judgment, not quota; preserve intentional continuity, legitimately all-`dense` material, and 1:1/literal order. Do not invent filler pages to manufacture rhythm; a `breathing` page marks a meaningful pause—chapter transition, standalone emphasis, or SCQA bridge—and must stand alone. Create no field, lock row, artifact, or second review/execution pass.
    - **Cover impact is mandatory**: In `design_spec.md §IX`, give `P01` one concrete hook from the source's strongest claim, metaphor, number, moment, or conflict plus a recommended composition. The hook binds; Executor may adopt, adapt, or decline the composition while preserving the hook and explicit constraints. With no suitable image, recommend a native-SVG hook instead of a generic title treatment. Beautify / template-fill preservation paths are exempt.
    - **Cover rhythm lock**: `P01` remains `anchor`. Default away from generic content-page templates; a card grid, agenda, or equal-weight columns remains valid when content, user direction, or the template makes it the clearest cover.
    - **Closing impact (only when the deck closes)**: For a genuine conclusion / CTA / final takeaway, name the binding takeaway plus a recommended composition; Executor may adopt, adapt, or decline the latter while preserving the takeaway and explicit constraints. Do not default to an information-empty "Thank you", contact-only slide, or cover reprise; an explicit contact/event CTA may serve the purpose. **Do NOT invent a closing page to satisfy this**. Preservation paths are exempt.

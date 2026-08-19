@@ -54,7 +54,7 @@ Every AI image uses one deck-wide rendering, the deck's stable color anchors/sem
 
 | Reference | Loaded |
 |---|---|
-| [`image-renderings/_index.md`](./image-renderings/_index.md) — rendering catalog + auto-selection table | Always (Step 1 below) |
+| [`image-renderings/_index.md`](./image-renderings/_index.md) — complete rendering catalog + objective selection boundary | Always (Step 1 below) |
 | [`image-type-templates/_index.md`](./image-type-templates/_index.md) — type catalog + auto-selection table | Always (Step 1 below) |
 | `image-renderings/<chosen>.md` | After Step 2 resolves the rendering — one preset file, or every exact reference listed for `custom` |
 | `image-type-templates/<chosen>.md` | After Step 3 picks the type per image — only the types actually used |
@@ -101,11 +101,12 @@ This fallback covers a missing key only. An empty or invalid value stops for loc
 
 | Signal | Maps to |
 |---|---|
-| `design_spec.md d. Style` mode + descriptor | Rendering (consult renderings `_index.md` auto-selection table) |
+| `design_spec.md d. Style` mode + descriptor plus intended image jobs | Rendering (compare the complete objective catalog; no keyword or paired style decides the result) |
 | Existing `spec_lock.md colors` rows | Deck color anchors; interpret them with the completed `design_spec.md`, never replace confirmed identity from a second palette |
 | Existing `spec_lock.md icons.library` | Sanity check: chosen rendering should be compatible with the icon library's visual weight |
 
-If rendering inference surfaces multiple candidates, pick the first; do not present another choice after confirmation.
+If rendering inference surfaces multiple candidates, choose the strongest
+whole-deck fit; do not present another choice after confirmation.
 
 If the table returns `custom`, stop and repair the lock: authoring `image_rendering_behavior` is a planning decision this fallback cannot make, and the deck's SVG style prose is not an image-rendering description.
 
@@ -122,7 +123,7 @@ Derive color behavior from the available roles and image context: background / s
 
 For each `Acquire Via: ai` row, use Strategist-owned §VIII/lock by default or the main agent's active-context Quick resource decision. Explicit values remain binding; Quick resolves omissions automatically.
 
-`Layout pattern` is a page-realization preference and is not copied wholesale into the bitmap prompt. Any generation-time subject direction, focal placement, quiet region, or overlay-safety requirement must therefore be present in the row's `Reference`, the matching §IX block, or Quick's active-context visual intent.
+`Layout pattern` is a page-realization preference and is not copied wholesale into the bitmap prompt. When page use depends on stable composition, consume the compact contract already owned by the row's `Reference`, matching §IX block, or Quick active context: subject/quiet zones, boundary or direction, intended overlap/seam, and approximate share only when needed. Do not invent or replace page layout here; return a missing required relationship to its owning decision.
 
 1. **Determine `page_role`** — the owning row's explicit value wins; a blank or omitted value resolves to `local`. In Default Generate, `hero_page` must be Strategist-explicit; in Quick Generate, the main agent may resolve it before acquisition in active context.
 2. **Determine `text_policy`** — the owning row's value wins when set. **Declared-inference fallback for a blank or omitted value**: pick `none` or `embedded` from the row's `Purpose`, `Reference`, and page intent based on whether in-image text serves the page. Long body / data / lists stay in SVG.
@@ -153,7 +154,7 @@ Every assembled prompt follows this paragraph structure. **Write prose, not tag 
 [Deck color behavior — state the core anchors and any context-justified tonal treatment, e.g. "secondary background #F8F9FA provides the breathing field, primary #1E3A5F carries main forms, accent #D4AF37 marks one emphasis; subtle lighter/darker material transitions remain in the same visual family"].
 [Composition — from the chosen type file or §4.1 no-type prose].
 [Image-specific subject — translated from the row's Reference intent into concrete visual nouns].
-[Container note — "composed as a {W}x{H}px image for {page_role} use"; add composition cues only when the page actually needs them. SVG-overlay-reservation cues ("leave the lower band calm — SVG title overlays it", "keep the right third calmer for SVG text") are valid when `page_role: hero_page`, or when §VIII `Reference` / §IX `Layout` explicitly plans native labels, hotspots, lenses, or other SVG overlays inside a `local` image region. Otherwise an opaque `local` image reserves no interior overlay space; a transparent illustration slice is generated as an isolated element and composed with other carriers by SVG].
+[Container note — "composed as a {W}x{H}px image for {page_role} use"; when the owned composition contract exists, carry its subject/quiet zones, boundary/direction, overlap/seam, and optional approximate share into the prose. Reserve an SVG-overlay region for `hero_page`, or for a `local` image only when §VIII `Reference` / §IX `Layout` explicitly plans native labels, hotspots, lenses, or other overlays there. Otherwise an opaque `local` image reserves no interior overlay space; generate a transparent illustration slice as an isolated element for SVG composition].
 [Hard rules — see §5].
 ```
 

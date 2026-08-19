@@ -9,9 +9,8 @@ Always-loaded Executor authority for flat SVG page authoring and behavior shared
 | `pptx_structure.mode: structured` | [`executor-structured.md`](./executor-structured.md) |
 | Any selected Chart/Table `family/key` reference, or a legacy `page_charts` row that resolves to a live Chart/Table SVG | [`executor-visualization.md`](./executor-visualization.md), then the resolver-returned Chart/Table branch |
 | Any value-driven geometry, including a chart-family reference, mini chart, sparkline, inset, or small multiple | [`executor-chart.md`](./executor-chart.md) |
-| The mandatory per-page Structure decision finds qualitative geometry | [`executor-structure.md`](./executor-structure.md) |
 | Any semantic cell grid, including a table-family reference | [`executor-table.md`](./executor-table.md) |
-| A page will use a preset pattern fill or an independent object is explicitly selected as native-ready | [`native-data-interface.md`](./native-data-interface.md) before emitting the pattern or replacement metadata |
+| A page uses a preset pattern fill, or an independent Chart/Table object is resolved as `<object-key>=yes` | [`native-data-interface.md`](./native-data-interface.md) before emitting the pattern or replacement metadata |
 | Any image | [`executor-image.md`](./executor-image.md) + [`image-layout-spec.md`](./image-layout-spec.md) + [`image-layout-patterns.md`](./image-layout-patterns.md) + [`svg-image-embedding.md`](./svg-image-embedding.md) |
 | Any nontrivial mathematical expression | [`native-formula.md`](./native-formula.md) |
 | Any external or same-deck click hyperlink | [`native-hyperlinks.md`](./native-hyperlinks.md) |
@@ -84,7 +83,7 @@ Use named lock roles literally when that role applies, and use optional `Templat
 
 **Per-page communication trace**: Read `communication.objective`, `communication.core_message`, and the current §IX `Core message` + `Audience move` before choosing composition. The page must advance the compact objective and move the audience as authored in §IX; the global core message remains the deck-wide north star. A page that cannot state this movement is an upstream outline defect — surface `warning: P<NN> has no communication move` instead of compensating with decorative layout. Do not invent a new purpose, ask, or outcome at execution time. Structural pages may advance the contract by establishing relevance / tension / decision frame or by completing the final commitment; they are not exempt from having a reason to exist.
 
-**Mandatory — per-page Structure decision**: Before drawing, read the current §IX `Layout`, `Visualization`, and `Content` and decide whether geometry must carry any qualitative `order`, `link`, `parent`, `membership`, `contrast`, or `overlap` relationship. Derive the result from that semantic relationship; a suggested carrier, topology, or macro composition does not decide it. If none applies, continue on this shared base path. If any applies, load [`executor-structure.md`](./executor-structure.md) before constructing the page and retain the relationship statement in active page context; do not create a catalog reference, lock row, or new artifact. A Chart/Table reference never substitutes for this decision.
+**Mandatory — per-page Structure decision**: Before drawing, read the current §IX `Layout`, `Visualization`, and `Content` and decide whether geometry must carry any qualitative `order`, `link`, `parent`, `membership`, `contrast`, or `overlap` relationship. Derive the result from that semantic relationship with the already-loaded [`executor-structure.md`](./executor-structure.md); a suggested carrier, topology, or macro composition does not decide it. If none applies, continue on this shared base path. If any applies, use that grammar and retain the relationship statement in active page context; do not create a catalog reference, lock row, or new artifact. A Chart/Table reference never substitutes for this decision.
 
 **Per-page reading-mode check**: Read `communication.consumption_mode` before choosing the page's composition. Apply it together with the authored §IX block texture and `page_rhythm`:
 
@@ -165,8 +164,8 @@ Before drawing each page, look up its entry in `page_rhythm` (key format `P<NN>`
 - **Main-agent ownership**: SVG generation must run in the main agent (not sub-agents) — pages share upstream context for cross-page visual continuity
 - **Generation rhythm**: P01 → first-page gate → uninterrupted remaining pages → final gate, in one context without batches or mid-run checker calls.
 - **Fact provenance**: when a §IX page lists `Fact IDs`, resolve each ID from `sources/*.facts.json` and keep the claim/value unchanged. Render a compact source footnote using the source name and a short URL/domain when space permits; when speaker notes are enabled, state the attribution naturally there too. When §IX says `Data class: scenario`, place a visible localized `Scenario data` / `情景数据` label adjacent to the affected KPI/chart and, when notes are enabled, state naturally there that the number is illustrative. Never attach an external fact ID to scenario data or let an unlabeled invented KPI look factual.
-- **Default — compose compatible carriers by page job (may use any suitable subset)**: background paint, native shapes, editable text, prepared photos/scenes, transparent illustration slices, decorative lettering, icons, and visualizations may share one page. Use only prepared resources; choose their combination, visual weight, and z-order from the page message and hierarchy. The resolved style controls treatment and emphasis, never carrier eligibility, image source, or the complete native construction vocabulary.
-- **Default — stage each page with the style's composition geometry (may override when the content genuinely calls for a plain grid)**: an SVG page is a canvas, not a DOM. Resolve the page-scale move from `spec_lock.md`: a preset uses that selected style's §1 `Composition geometry`; `custom` executes `visual_style_behavior` first, then uses §1 geometry only from exact `visual_style_references` that the behavior assigns a shape or composition job. Other bases contribute only their assigned job, and an unreferenced novel custom follows its behavior alone. Treat every listed move as generative vocabulary rather than a finite menu. Before defaulting to stacked rounded-rect cards or uniform equal columns, use that resolved geometry to stage the page's primary zone. Card grids are one option among many, not the house layout.
+- **Mandatory — resolve the page carrier mix before coordinates**: decide background paint/field, editable text and optional lettering, native geometry/lines, prepared photos/scenes/illustration/icon assets, and applicable visualizations in one page-level composition decision. Use any suitable subset; omitting a carrier remains valid. Do not finish a text/container layout and then treat the other families as optional decoration. Use only prepared external resources, preserve every binding resource job and constraint, and choose the actual combination, visual weight, z-order, and local native construction from the page message and hierarchy. The resolved style controls treatment and emphasis, never carrier eligibility, image source, or the complete native construction vocabulary.
+- **Default — stage each page with the style's composition geometry (may override when another page-fit move is stronger)**: an SVG page is a canvas, not a DOM. Resolve the page-scale move from `spec_lock.md`: a preset uses that selected style's §1 `Composition geometry`; `custom` executes `visual_style_behavior` first, then uses §1 geometry only from exact `visual_style_references` that the behavior assigns a shape or composition job. Other bases contribute only their assigned job, and an unreferenced novel custom follows its behavior alone. Treat every listed move as generative vocabulary rather than a finite menu, then apply [`native-shape-authoring.md`](./native-shape-authoring.md) §2.1's shared exact-fit geometry gate.
 - **Default — consider the planned motif direction (may override when another coherent expression better serves the deck)**: when §III `Theme` recommends a cross-page motif or element family, decide whether it earns a continuity job. If adopted, keep its reuse coherent while varying scale, crop, density, position, and content interaction by page role; otherwise adapt or decline it and establish a more fitting style-consistent expression. An explicit user/template motif remains binding.
 - **Inherited containers**: preserve meaningful template frames; restyle radius, fill, stroke, and depth from the active Design Spec and `spec_lock.md`. Selected Chart/Table reference adaptation is owned by [`executor-visualization.md`](./executor-visualization.md); preview effects never override project styling or structural roles.
 - **Reference — prefer semantic geometry over preset stacks**: for relationships such as ascending, converging, breaking through, or stacking, first compose faithful primitives and exact presets as one page geometry system; use a Boolean only when the contour itself must merge, open, or fragment. Only when neither construction works should one page-specific polygon/path replace a stack of generic arrows.
@@ -175,6 +174,16 @@ Before drawing each page, look up its entry in `page_rhythm` (key format `P<NN>`
   1. **Visual Construction Phase**: generate all SVG pages sequentially for visual consistency. Apply every triggered information-model branch while drawing. **MUST embed one object-scoped plot-area marker** per §IX-named or Quick-promoted value-driven chart object under [`executor-chart.md`](./executor-chart.md) §2; coordinate calibration is a post-generation step (see [`verify-charts`](../workflows/stages/verify-charts.md)). Write every `<object-key>=yes` native marker plus JSON metadata atomically under [`native-data-interface.md`](./native-data-interface.md) §2. **Reach for native presets** per §3.0 as you draw each page: a block arrow, chevron, banner/ribbon, callout, standard flowchart node, or star is authored through `preset_shape_svg.py` at draw time — decided by the object's intent as you create it, never by scanning finished paths, and never committed to a bare `<path>`/`<polygon>` when a preset expresses it (a gradient fill/stroke or a pattern fill is the one paint exception — keep those ordinary SVG; when justified, one registered [`svg-effects.md`](./svg-effects.md) §6.4 shadow/glow stays on the helper-authored shape). **First-page gate (Mandatory)**: after completing the first page, run `python3 ${SKILL_DIR}/scripts/svg_quality_checker.py <project_path> --stage first-page --json` directly without output filtering. Review the whole P01 issue set, make one consolidated edit pass for every error and any selected warnings, then perform one verification rerun. If it still fails, treat that complete output as the next batch; never check between individual fixes. After it passes, draw P02 through the last page without checker calls.
   2. **Quality Check Gate**: only after every planned SVG exists, run `python3 ${SKILL_DIR}/scripts/svg_quality_checker.py <project_path> --stage final --json` directly on `svg_output/` without `tail` / `head` / `grep` filtering. One run already reports all pages. Review its complete issue set, fix every `error` plus any selected advisory warnings in one consolidated edit pass, then perform one verification rerun. If it still fails, its complete output begins the next batch cycle; never use checker calls to discover or fix one next issue at a time. Every `warning` is advisory: it never sends the page back for required modification, never authorizes automatic rewriting of compatible user syntax, and needs no acknowledgement/disposition line. Recommendation warnings describe the generated-SVG default; fidelity/quality warnings may be surfaced when material, while the existing input remains releasable. Prototype-identical diagnostics are recorded as `inherited`, source conversion losses as `source-import`, changed/new advisories as `introduced`, and release failures as `blocking` in `validation/svg_quality_report.json`. If release truly depends on a condition, it belongs in `errors`. On success, use the exit status and terminal summary; do not open or `cat` the complete JSON into model context. If terminal output is truncated on failure, read only the relevant issue arrays from the report written by that same run. Do NOT defer error handling to after `finalize_svg.py` — finalize rewrites SVG and masks some violations.
   3. **Logic Construction Phase (conditional)**: after SVGs pass the quality check, batch-generate speaker notes for narrative continuity only when the effective Speaker Notes outcome is enabled.
+
+**Mandatory — final carrier-receipt review**: The final checker prints one
+factual `[CARRIERS]` summary and stores per-page detail under
+`files[].info.carrier_receipt`. Compare the summary with the retained page jobs,
+chosen resource roles, and running geometry signatures before export. Counts
+and diversity never create a quota or prove quality; zero use remains valid.
+When the facts contradict an active decision—such as an adopted preset absent
+from output, a primary image reduced to a minor frame, or unrelated jobs
+collapsing to one neutral construction—read only the affected receipt rows,
+repair those pages in one consolidated pass, and rerun the final checker.
 
 ### 3.0 Native Shape Selection
 
@@ -188,46 +197,25 @@ materialize that contour with Boolean semantics, and use freeform last. Block
 arrows, chevrons, banners / ribbons, callouts, flowchart nodes, stars, and other
 Office symbols use `preset_shape_svg.py`, not plain paths or fake rectangles.
 
-Before the first page, complete [`native-shape-authoring.md`](./native-shape-authoring.md)'s
-unfiltered full-registry discovery. Decide every page-fit contour and its
-simplest exact authoring form directly from the page content and visual system;
-no Design Spec construction selection or material inventory gates this choice.
+Before the first page, read
+[`preset-shape-vocabulary.md`](./preset-shape-vocabulary.md) completely. Decide
+every page-fit contour and its simplest exact authoring form directly from the
+page content and visual system; no Design Spec construction selection, scorer,
+or material inventory gates this choice.
 
 **Mandatory — independent per-page geometry move**: after the Structure result
-and any applicable topology resolve, but before writing coordinates, choose one
-page-scale geometry move from the actual content, visual system, and complete
-native vocabulary. Compare a deliberate plain / neutral construction with
-[`native-shape-authoring.md`](./native-shape-authoring.md) §2.1's page-field,
-outline, nesting, continuity, depth / contrast, and contour-change lenses.
-Readability alone does not select the simple branch; a plain grid or no compound
-construction remains valid when it is the deliberate best fit for the page job.
-This applies to both `Structure=no` and `Structure=yes`, stays in active context
-until the page is complete, and never changes that result. Use §2.1 whenever the
-move adopts two or more native shapes. There is no coverage target or required
-explanation for a simple result.
-
-**Default — do not use rectangles as the universal carrier (may use when a
-neutral field is the best fit)**: before drawing another `<rect>` / rounded
-`<rect>` container, test whether the content job calls for a more expressive
-preset, outline contour, or compound geometry. Choose one coherent shape
-language for the page; do not assign unrelated novelty shapes item by item.
-
-**Default — give floating text a geometric owner when useful (may omit when
-typography and negative space already establish deliberate hierarchy)**: before
-leaving a key or repeated text cluster unbounded, consider a native outline,
-frame, arc, bracket, band, spine, or other content-fit carrier. `fill="none"`
-with a visible stroke is a first-class option and does not imply a filled card.
-
-**Reference — use visual nesting for depth**: a larger field may contain or be
-crossed by an inset contour, secondary surface, badge, port, or focal shape.
-Keep these as independently editable siblings in the ordinary semantic group;
-visual containment never authorizes placing content inside an atomic preset
-fragment or merging shapes that do not require one contour.
+and any applicable topology resolve, apply
+[`native-shape-authoring.md`](./native-shape-authoring.md) §2.1 before writing
+coordinates. It owns the exact-fit geometry comparison, composition lenses,
+independent relationship / carrier fit, contour-family / exact-result choice,
+reader effect for a generic or undrawn result, running geometry signature, and
+materialization boundary for both `Structure=no` and `Structure=yes`. Keep the
+current decision in active context and never change the Structure result.
 
 | Selected result | Authoring form |
 |---|---|
 | Selected exact non-Connector stock contour | Use ordinary SVG only when the exporter maps it to that same contour; otherwise call `preset_shape_svg.py render` and paste its complete stdout fragment. |
-| Straight relationship / divider / leader | Use `<line>`; add a registered marker only when direction is meaningful. |
+| Straight relationship / divider / leader | Use `<line>`; add a registered marker under [`shared-standards-core.md`](./shared-standards-core.md) §1.1 only when direction is meaningful. |
 | Bent / curved relationship exactly expressed by a stock Connector contour, with no required endpoint attachment | Use the matching `bentConnector*` / `curvedConnector*` preset through the helper as an unconnected native Connector shape. |
 | Selected text/content boundary needs no filled surface | Use its exact authoring form with `fill="none"` and a visible stroke; keep text and other content independent. |
 | Two or more native shapes should form one page-level geometry system | Follow [`native-shape-authoring.md`](./native-shape-authoring.md) §2.1: compose faithful primitives and presets as independent siblings first, then materialize only contours that require Boolean semantics. |

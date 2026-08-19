@@ -102,8 +102,21 @@ Constraint strength and decision ownership are independent. Preserve this chain 
 | Layer | Owns |
 |---|---|
 | User / initial materials | Supplied facts/assets, desired outcome, exclusions, and permission boundaries remain authoritative |
-| Strategist / plan + preparation | Assess material sufficiency; trigger permitted topic research and retain its research/provenance pair without expanding adopted webpage URLs; decide the approved content, resources, keys, identity anchors, and exact page roster; recommend high-level composition, visual focus, and continuity as Reference when useful, without selecting a local authoring capability or element geometry; materialize the planned project-local inventory or record an explicit `Needs-Manual` dependency before execution. For icons, prepare a curated project pool with broad semantic fit rather than assigning files to pages |
-| Executor / realization | Use only prepared project-local assets; preserve approved content, resources, and identity anchors; realize them through geometry, composition, hierarchy, and treatment. Discover and invoke local deterministic authoring capabilities without an upstream capability selection. Consider each field explicitly labeled `suggestion` or Reference, then adopt, adapt, or decline it while preserving its semantic job and every binding constraint. For icons, the complete `<project>/icons/` pool is prepared material; `icons.inventory` is a curated bundled-pool index, not a page-use plan or whitelist, and Executor chooses prepared icons per page without a coverage quota. Sparse local font/color garnish is allowed only while non-structural and non-recurring |
+| Strategist / plan + preparation | Assess material sufficiency; trigger permitted topic research and retain its research/provenance pair without expanding adopted webpage URLs; decide the approved content, resources, keys, identity anchors, and exact page roster. During that roster composition, resolve each page's semantic carrier mix—background, text/lettering, native-geometry/relationship jobs, imagery/symbols, and data carriers—in one pass before deriving external-resource rows. Recommend high-level composition, visual focus, and continuity as Reference when useful, without selecting a local authoring capability or element geometry; materialize the planned project-local inventory or record an explicit `Needs-Manual` dependency before execution. For icons, prepare a curated project pool with broad semantic fit rather than assigning files to pages |
+| Executor / realization | Use only prepared project-local assets; preserve approved content, resources, and identity anchors; realize each page by resolving the actual carrier combination, geometry, composition, hierarchy, and treatment together before coordinates. Discover and invoke local deterministic authoring capabilities without an upstream capability selection. Consider each field explicitly labeled `suggestion` or Reference, then adopt, adapt, or decline it while preserving its semantic job and every binding constraint. For icons, the complete `<project>/icons/` pool is prepared material; `icons.inventory` is a curated bundled-pool index, not a page-use plan or whitelist, and Executor chooses prepared icons per page without a coverage quota. Sparse local font/color garnish is allowed only while non-structural and non-recurring |
+
+**Hard rule — capability knowledge precedes selection**: physical file
+boundaries do not imply runtime lazy-loading. A role loads the complete decision
+authorities for every capability it owns before choosing among those
+capabilities; otherwise the load trigger circularly depends on a choice made
+without that capability. Default Strategist's fixed planning bundle covers
+resource/preparation and high-level expression options without local authoring
+parameters. Executor's fixed construction bundle covers locally callable
+authoring options. Quick loads both decision surfaces in its one context. Only
+post-selection mechanics whose trigger is independently observable may remain
+conditional. For example, an actual `ai` / `slice` resource row may trigger
+Image_Generator backend, prompt-assembly, and per-image type details after
+planning; those mechanics are not a missing Strategist capability.
 
 **Hard rule — native shapes are authoring capabilities, not prepared
 resources**: a prepared resource needs a stable project-local file/path before
@@ -114,7 +127,7 @@ never inventories them or promotes a concrete preset, primitive, Connector,
 Boolean/freeform operation, or authoring parameter into a binding planning
 selection. A macro Reference may mention a technique as optional inspiration
 without prescribing or gating construction. The Design Spec / lock create no
-native-shape field; Executor discovers the complete current preset registry and
+native-shape field; Executor reads the complete current preset vocabulary and
 chooses the page-fit construction during realization.
 
 **Preparation timing**: In the default pipeline, topic research and import of
