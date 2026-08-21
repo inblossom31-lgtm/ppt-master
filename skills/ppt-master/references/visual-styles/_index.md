@@ -89,6 +89,14 @@ communication job changes.
 | Typography character | The role editable type plays inside the composition, independent of exact font choice |
 | Delivery and afterlife | Viewing distance, projection/print behavior, reuse, and expected editing |
 
+**Default — derive shape language from project fit (may override when a generic
+primitive system is itself the clearest identity or communication choice)**:
+Before settling on lines, rectangles, circles, or ellipses as the deck's main
+shape language, test whether the source material, identity, or communication
+job offers a more specific edge, corner, opening, angle, contour, or layering
+logic. Retain a primitive-led result when it deliberately fits; do not select
+an exact authoring preset here.
+
 > When the deck has AI images, the "Paired rendering" column exposes an
 > aesthetically related option. It does not select the rendering or create an
 > AI image job; compare it with the actual image roles before using it.
@@ -97,13 +105,13 @@ communication job changes.
 
 ---
 
-## 3. Escape hatch — `custom`
+## 3. Editable `custom` projection
 
-Each coordinated Default Stage-2 direction authors one visible, non-empty `custom` aesthetic whose paragraph names project-specific shape language, composition geometry, decoration density, whitespace, typographic character, and texture — **no HEX, no color names as values**. Use this index to freeze any catalog bases before reading their detail files. A template-backed synthesis stays inside the inherited identity and confirmed application plan. Record the confirmed current aesthetic in the Design Spec first, then project `- visual_style: custom` plus `- visual_style_behavior:`. The 18 fixed styles remain lower-level single-select alternatives; do not create a fourth AI-custom proposal.
+Each coordinated Default Stage-2 direction authors one visible, non-empty `custom` aesthetic whose paragraph names its executable shape language, composition geometry, decoration density, whitespace, typographic character, and texture — **no HEX, no color names as values**. `custom` is not constrained by its relationship to the catalog: it may use catalog material in any way or none, including carrying one fitting preset unchanged. The three complete directions are plainly different designs; this axis expresses that difference whenever their aesthetics genuinely differ, and catalog bases may coincide. A different name, note, reference count, or palette alone is not another aesthetic. Style behaviors may also coincide when other components carry the direction difference or authoritative user/template truth forbids visual variation; state that boundary in the direction note instead of fabricating difference. Use this index to freeze any catalog bases before reading their detail files. A template-backed direction stays inside the inherited identity and confirmed application plan. Record the confirmed current aesthetic in the Design Spec first, then project `- visual_style: custom` plus `- visual_style_behavior:`. The 18 fixed styles remain lower-level single-select alternatives; do not create a fourth AI-custom proposal.
 
 Quick does not display a candidate spectrum. It reads this index, resolves one preset or custom behavior, then reads only the selected detail files and persists nothing.
 
-**Mandatory — select before detail reading**: Freeze every catalog source actually used from this index, then read only those exact files before writing the behavior. A custom may use zero, one, or many sources: keep one when it owns the whole specialized aesthetic, or include every style that contributes a distinct executable job across shape language, composition, decoration, whitespace, typography, or texture. Reference count has no fixed cap; count is an outcome, not a target. A coherent three-basis direction may assign `swiss-minimal` to grid and whitespace, `soft-rounded` to selective surface contours and elevation, and `editorial` to evidence hierarchy and rules. Default persists every actual id as `visual_style_references`; Quick retains them only in active context. Omit every source whose contribution cannot be stated, never add a second merely to imply synthesis, and do not open candidates for comparison after this gate. A genuinely new aesthetic names and reads no catalog source.
+**Mandatory — select before detail reading**: Freeze every catalog source actually used from this index, then read only those exact files before writing the behavior. One source may supply the complete aesthetic unchanged; when several are named, each contributes a distinct executable job across shape language, composition, decoration, whitespace, typography, or texture. Reference count has no fixed cap; count is an outcome, not a target. A coherent three-basis direction may assign `swiss-minimal` to grid and whitespace, `soft-rounded` to selective surface contours and elevation, and `editorial` to evidence hierarchy and rules. Default persists every actual id as `visual_style_references`; Quick retains them only in active context. Omit every source whose contribution cannot be stated, never add a second merely to imply synthesis, and do not open candidates for comparison after this gate. A custom using no catalog source names and reads none.
 
 ---
 
